@@ -1,0 +1,168 @@
+services:
+  kafka-c-1:
+    image: confluentinc/cp-kafka:8.3.0
+    # Для роли контроллера "KAFKA_ADVERTISED_LISTENERS" должна отсутствовать, но в поставке cp-kafka, она все равно создается. Поэтому вот так удаляем ее.
+    entrypoint: [ "/bin/bash", "-c", "unset KAFKA_ADVERTISED_LISTENERS; exec /etc/confluent/docker/run" ]
+    container_name: kafka-c-1
+    hostname: kafka-c-1
+    environment:
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-c-1:9093,2@kafka-c-2:9093,3@kafka-c-3:9093"
+      KAFKA_LISTENERS: "CONTROLLER://:9093"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_PROCESS_ROLES: "controller"
+    volumes:
+      - kafka-c-1-data:/var/lib/kafka/data
+      - kafka-c-1-secrets:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    restart: unless-stopped
+  kafka-c-2:
+    image: confluentinc/cp-kafka:8.3.0
+    # Для роли контроллера "KAFKA_ADVERTISED_LISTENERS" должна отсутствовать, но в поставке cp-kafka, она все равно создается. Поэтому вот так удаляем ее.
+    entrypoint: [ "/bin/bash", "-c", "unset KAFKA_ADVERTISED_LISTENERS; exec /etc/confluent/docker/run" ]
+    container_name: kafka-c-2
+    hostname: kafka-c-2
+    environment:
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_NODE_ID: 2
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-c-1:9093,2@kafka-c-2:9093,3@kafka-c-3:9093"
+      KAFKA_LISTENERS: "CONTROLLER://:9093"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_PROCESS_ROLES: "controller"
+    volumes:
+      - kafka-c-2-data:/var/lib/kafka/data
+      - kafka-c-2-secrets:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    restart: unless-stopped
+  kafka-c-3:
+    image: confluentinc/cp-kafka:8.3.0
+    # Для роли контроллера "KAFKA_ADVERTISED_LISTENERS" должна отсутствовать, но в поставке cp-kafka, она все равно создается. Поэтому вот так удаляем ее.
+    entrypoint: [ "/bin/bash", "-c", "unset KAFKA_ADVERTISED_LISTENERS; exec /etc/confluent/docker/run" ]
+    container_name: kafka-c-3
+    hostname: kafka-c-3
+    environment:
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_NODE_ID: 3
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-c-1:9093,2@kafka-c-2:9093,3@kafka-c-3:9093"
+      KAFKA_LISTENERS: "CONTROLLER://:9093"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_PROCESS_ROLES: "controller"
+    volumes:
+      - kafka-c-3-data:/var/lib/kafka/data
+      - kafka-c-3-secrets:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    restart: unless-stopped
+  kafka-b-1:
+    image: confluentinc/cp-kafka:8.3.0
+    container_name: kafka-b-1
+    hostname: kafka-b-1
+    environment:
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_NODE_ID: 4
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-c-1:9093,2@kafka-c-2:9093,3@kafka-c-3:9093"
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,EXTERNAL://:9094"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-b-1:9092,EXTERNAL://127.0.0.1:19094"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_PROCESS_ROLES: "broker"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    volumes:
+      - kafka-b-1-data:/var/lib/kafka/data
+      - kafka-b-1-secrets:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    restart: unless-stopped
+    ports:
+      - "19094:9094"
+  kafka-b-2:
+    image: confluentinc/cp-kafka:8.3.0
+    container_name: kafka-b-2
+    hostname: kafka-b-2
+    environment:
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_NODE_ID: 5
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-c-1:9093,2@kafka-c-2:9093,3@kafka-c-3:9093"
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,EXTERNAL://:9094"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-b-2:9092,EXTERNAL://127.0.0.1:29094"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_PROCESS_ROLES: "broker"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    volumes:
+      - kafka-b-2-data:/var/lib/kafka/data
+      - kafka-b-2-secrets:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    restart: unless-stopped
+    ports:
+      - "29094:9094"
+  kafka-b-3:
+    image: confluentinc/cp-kafka:8.3.0
+    container_name: kafka-b-3
+    hostname: kafka-b-3
+    environment:
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_NODE_ID: 6
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-c-1:9093,2@kafka-c-2:9093,3@kafka-c-3:9093"
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,EXTERNAL://:9094"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-b-3:9092,EXTERNAL://127.0.0.1:39094"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_PROCESS_ROLES: "broker"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    volumes:
+      - kafka-b-3-data:/var/lib/kafka/data
+      - kafka-b-3-secrets:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    restart: unless-stopped
+    ports:
+      - "39094:9094"
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS: "kafka-b-1:9092,kafka-b-2:9092,kafka-b-3:9092"
+      KAFKA_CLUSTERS_0_NAME: "kafka-kraft"
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    networks:
+      - kafka-network
+    restart: unless-stopped
+    depends_on:
+      - kafka-c-1
+      - kafka-c-2
+      - kafka-c-3
+      - kafka-b-1
+      - kafka-b-2
+      - kafka-b-3
+volumes:
+  kafka-c-1-data:
+  kafka-c-1-secrets:
+  kafka-c-2-data:
+  kafka-c-2-secrets:
+  kafka-c-3-data:
+  kafka-c-3-secrets:
+  kafka-b-1-data:
+  kafka-b-1-secrets:
+  kafka-b-2-data:
+  kafka-b-2-secrets:
+  kafka-b-3-data:
+  kafka-b-3-secrets:
+
+networks:
+  kafka-network:
+    driver: bridge

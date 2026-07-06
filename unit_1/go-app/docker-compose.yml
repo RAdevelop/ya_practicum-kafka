@@ -1,0 +1,14 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+#    container_name: go-app
+    hostname: go-app
+    restart: unless-stopped
+    networks:
+      - unit_1_kafka-network
+
+networks:
+  unit_1_kafka-network:
+    external: true
