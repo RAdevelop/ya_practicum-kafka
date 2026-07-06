@@ -15,10 +15,14 @@ import (
 )
 
 var (
-	brokers                 = []string{"192.168.50.128:19094", "192.168.50.128:29094", "192.168.50.128:39094"} // Адрес брокера
-	topicInput  goka.Stream = "input"                                                                          // Топик с исходными данными
-	topicOutput goka.Stream = "output"                                                                         // Топик с результатом
-	topicGroup  goka.Group  = "upper-case-group"                                                               // Название группы процессора
+	// Адрес брокера
+	brokers = []string{"192.168.50.128:19094", "192.168.50.128:29094", "192.168.50.128:39094"}
+	// Топик с исходными данными
+	topicInput goka.Stream = "input"
+	// Топик с результатом
+	topicOutput goka.Stream = "output"
+	// Название группы процессора
+	topicGroup goka.Group = "upper-case-group"
 )
 
 type gokaCodec interface {
