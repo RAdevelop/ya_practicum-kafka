@@ -25,10 +25,6 @@ var (
 	topicGroup goka.Group = "upper-case-group"
 )
 
-type gokaCodec interface {
-	codec.Int64 | codec.String | codec.Bytes
-}
-
 // runEmitter - Генерирует сообщения (строки) и отправляет их в топик topicInput каждую секунду
 func runEmitter(ctx context.Context, codec goka.Codec) {
 	emitter, err := goka.NewEmitter(brokers, topicInput, codec)

@@ -1,6 +1,9 @@
 package codec
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 func NewJsonCodec[T any]() *JsonCodec[T] {
 	return &JsonCodec[T]{}
@@ -10,12 +13,11 @@ type JsonCodec[T any] struct {
 }
 
 func (jc *JsonCodec[T]) Encode(value interface{}) ([]byte, error) {
-	b, err := json.Marshal(value)
-	if err != nil {
-		return nil, err
-	}
+	if v, ok := value.(T); ok {
+		return json.Marshal(v)
 
-	return b, nil
+	}
+	return nil, fmt.Errorf("illegal type: %T", value)
 }
 
 func (jc *JsonCodec[T]) Decode(data []byte) (interface{}, error) {
