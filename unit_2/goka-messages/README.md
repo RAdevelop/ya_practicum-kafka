@@ -17,7 +17,7 @@
   - `to_user_id int64` - кому сообщение
   - `text string` - текст сообщения
 - `bad_words` - список нецензурных слов
-  - `list map[string]string` - карта слов, в которой ключом является само слово, в значение маска `*` - столько символ, сколько букв в слове 
+  - `list map[string]string` - карта слов, в которой ключом является само слово (приведенное к нижнему регистру), в значение маска `*` - столько символ, сколько букв в слове 
 - goka emitter:
   - `message` 
     - шлет сообщения в топик `messages`
@@ -27,7 +27,7 @@
     - добавляет в топик `bad_words` по ключу `bad_word` слова для цензуры
 - goka processor:
   - `user`
-    - `blocker`: 
+    - `blocker`:
       - читает сообщения из топика `messages`
       - проверяет, есть ли у пользователя X, как получателя сообщения, пользователь Y, как отправитель ему сообщения, в списке заблокированных
         - предварительно получив список заблокированных пользователей
@@ -38,11 +38,62 @@
     - читает сообщения из топика `messages_needs_checked_by_censor`
     - нецензурные слова в тексте сообщений маскирует, например, символом `*` по количеству букв
       - предварительно получив список запрещенных слов
-    - отправляет сообщение дальше в топик `messages_to_send`
+    - отправляет сообщение дальше в топик `filtered_messages`
     - логирует сообщение после цензуры
   - `logger`
-    - читает топик `messages_to_send`
+    - читает топик `filtered_messages`
     - выступает в качестве эмуляции получения сообщений пользователями
     - выводит в лог какой пользователь какое сообщение получит (получил)
 - Топики:
-  - TODO добавить список топиков с командами создания
+  - `messages` - оригинальные сообщения
+  - `bad_words` - запрещенные слова
+  - `blocked_users` - в который будем писать кто кого заблокировал для себя
+  - `messages_needs_checked_by_censor` - в который будем писать сообщения для дальнейшего цензурирования
+  - `filtered_messages` - сообщения, прошедшие через цензуру, и готовые для получения пользователями
+- Постоянное хранилище:
+  - `group-censor-word-table` - постоянное хранилище для запрещенных слов
+  - `group-blocked-users-table` - постоянное хранилище для заблокированных пользователей
+
+## Создание топиков
+
+- messages:
+
+```bash
+docker exec -it kafka-b-1 kafka-topics --create --topic messages --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --config min.insync.replicas=2
+```
+
+- bad_words:
+
+```bash
+docker exec -it kafka-b-1 kafka-topics --create --topic bad_words --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --config min.insync.replicas=2
+```
+
+- blocked_users:
+
+```bash
+docker exec -it kafka-b-1 kafka-topics --create --topic blocked_users --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --config min.insync.replicas=2
+```
+
+- messages_needs_checked_by_censor:
+
+```bash
+docker exec -it kafka-b-1 kafka-topics --create --topic messages_needs_checked_by_censor --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --config min.insync.replicas=2
+```
+
+- filtered_messages:
+
+```bash
+docker exec -it kafka-b-1 kafka-topics --create --topic filtered_messages --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --config min.insync.replicas=2
+```
+
+- group-censor-word-table:
+
+```bash
+docker exec -it kafka-b-1 kafka-topics --create --topic group-censor-word-table --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --config min.insync.replicas=2
+```
+
+- group-blocked-users-table:
+
+```bash
+docker exec -it kafka-b-1 kafka-topics --create --topic group-blocked-users-table --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --config min.insync.replicas=2
+```

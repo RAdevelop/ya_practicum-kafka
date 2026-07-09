@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -27,7 +28,7 @@ var (
 
 // runEmitter - Генерирует сообщения (строки) и отправляет их в топик topicInput каждую секунду
 func runEmitter(ctx context.Context, codec goka.Codec) {
-	emitter, err := goka.NewEmitter(brokers, topicInput, codec)
+	emitter, err := goka.NewEmitter(brokers, topicInput, codec /*, goka.WithEmitterLogger()*/)
 	if err != nil {
 		log.Fatalf("error creating emitter: %v", err)
 	}
@@ -38,7 +39,7 @@ func runEmitter(ctx context.Context, codec goka.Codec) {
 		}
 	}()
 
-	var counter int
+	var counter int64
 	for {
 		select {
 		case <-ctx.Done():
@@ -46,12 +47,18 @@ func runEmitter(ctx context.Context, codec goka.Codec) {
 			return
 		case <-time.After(1 * time.Second):
 			//err = emitter.EmitSync("key", fmt.Sprintf("Value #%d", counter))
-			err = emitter.EmitSync("key", rand.Int64N(1_000_000))
+			//err = emitter.EmitSync("key", rand.Int64N(1_000_000))
+			promise, err := emitter.Emit("key", rand.Int64N(1_000_000))
 			if err != nil {
-				log.Fatalf("error emitting message: %v", err)
+				return
 			}
-			log.Printf("[emitter] Сообщение #%d отправлено\n", counter)
-			counter++
+			promise.Then(func(err error) {
+				if err != nil {
+					log.Fatalf("[emitter] error emitting message: %v", err)
+				}
+				atomic.AddInt64(&counter, 1)
+				log.Printf("[emitter] Сообщение #%d отправлено\n", counter)
+			})
 		}
 	}
 }
