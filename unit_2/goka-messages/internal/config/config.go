@@ -18,14 +18,14 @@ func (c *Config) Load(envFilePath string) {
 }
 
 type emitter struct {
-	Brokers string `env:"BROKERS" envDefault:"kafka-b-1:9092"`
+	Brokers []string `env:"BROKERS" envDefault:"kafka-b-1:9092"`
 }
 
 type processor struct {
-	Brokers          string `env:"BROKERS" envDefault:"kafka-b-1:9092"`
-	GroupCensorWord  string `env:"GROUP_CENSOR_WORD" envDefault:"group-censor-word"`
-	GroupBlockedUser string `env:"GROUP_BLOCKED_USERS" envDefault:"group-blocked-user"`
-	GroupLogger      string `env:"GROUP_LOGGER" envDefault:"group-logger"`
+	Brokers          []string `env:"BROKERS" envDefault:"kafka-b-1:9092"`
+	GroupCensorWord  string   `env:"GROUP_CENSOR_WORD" envDefault:"group-censor-word"`
+	GroupBlockedUser string   `env:"GROUP_BLOCKED_USERS" envDefault:"group-blocked-user"`
+	GroupSender      string   `env:"GROUP_SENDER" envDefault:"group-sender"`
 }
 type topic struct {
 	Messages                     string `env:"MESSAGES" envDefault:"messages"`

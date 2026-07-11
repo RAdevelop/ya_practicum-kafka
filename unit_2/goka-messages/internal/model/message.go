@@ -1,5 +1,6 @@
 package model
 
+// Message - представление отдельно взятого сообщения (кто кому отправил)
 type Message struct {
 	ID         int64  `json:"id"`
 	FromUserID int64  `json:"from_user_id"`

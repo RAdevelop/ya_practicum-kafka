@@ -50,5 +50,5 @@ func (l *Logger) getMsgWithFileLine(msg string) string {
 		file = parts[len(parts)-1]
 	}
 
-	return l.prefix + "in file: " + file + ":" + strconv.Itoa(line) + ": " + msg + "\n\n"
+	return l.prefix + "in file: " + file + ":" + strconv.Itoa(line) + ": " + msg + "\n"
 }
