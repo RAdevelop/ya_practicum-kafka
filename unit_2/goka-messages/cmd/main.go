@@ -32,7 +32,7 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	// 1. запускаем эмиттер для загрузки и обновления запрещенных слов
+	// 1. запускаем эмиттер для загрузки запрещенных слов
 	wg.Add(1)
 	go func(ctx context.Context, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -110,7 +110,7 @@ func main() {
 		defer wg.Done()
 
 		censor := processor.NewCensor(cfg)
-		censor.Cens(ctx, cfg, new(jsCode.JsonCodec[model.Message]))
+		censor.Cens(ctx)
 
 	}(ctx, &wg)
 

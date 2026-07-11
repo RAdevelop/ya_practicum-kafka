@@ -22,11 +22,11 @@ func NewMessageSender() *MessageSender {
 
 func (ms MessageSender) Send(context context.Context, config config.Config, codec goka.Codec) {
 
-	group := goka.DefineGroup(goka.Group(config.Processor.GroupSender),
-		goka.Input(goka.Stream(config.Topic.FilteredMessages), codec, ms.messageProcess),
+	group := goka.DefineGroup(config.Processor.GroupSender,
+		goka.Input(config.Topic.FilteredMessages, codec, ms.messageProcess),
 	)
 
-	processor, err := goka.NewProcessor(config.Processor.Brokers, group)
+	processor, err := goka.NewProcessor(config.Brokers, group)
 	if err != nil {
 		ms.logger.Error("failed create MessageSendProcessor: %v", err)
 		return
@@ -38,7 +38,7 @@ func (ms MessageSender) Send(context context.Context, config config.Config, code
 	}
 }
 
-func (ms MessageSender) messageProcess(context goka.Context, msg any) {
+func (ms MessageSender) messageProcess(ctx goka.Context, msg any) {
 	message, ok := msg.(model.Message)
 	if !ok {
 		ms.logger.Error("wrong message type: %T\n", msg)

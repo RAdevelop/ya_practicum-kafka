@@ -9,8 +9,8 @@ type Emitter struct {
 	emitter *goka.Emitter
 }
 
-func NewEmitter(topic string, config config.Config, codec goka.Codec, options ...goka.EmitterOption) (*Emitter, error) {
-	emitter, err := goka.NewEmitter(config.Emitter.Brokers, goka.Stream(topic), codec, options...)
+func NewEmitter(topic goka.Stream, config config.Config, codec goka.Codec, options ...goka.EmitterOption) (*Emitter, error) {
+	emitter, err := goka.NewEmitter(config.Brokers, topic, codec, options...)
 	if err != nil {
 		return nil, err
 	}
