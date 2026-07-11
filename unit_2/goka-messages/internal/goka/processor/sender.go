@@ -9,6 +9,7 @@ import (
 	"github.com/lovoo/goka"
 )
 
+// MessageSender - реализует отправку сообщений, которые готовы для получения пользователями
 type MessageSender struct {
 	logger *logger.Logger
 }
@@ -44,5 +45,6 @@ func (ms MessageSender) messageProcess(context goka.Context, msg any) {
 		return
 	}
 
-	ms.logger.Info("process message: %#v\n", message)
+	ms.logger.Info("send message ID= %d, FromUserID = %d, ToUserID = %d", message.ID, message.FromUserID, message.ToUserID)
+	ms.logger.Info("message: %#v\n", message)
 }

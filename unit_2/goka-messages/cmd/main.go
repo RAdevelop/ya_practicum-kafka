@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -93,7 +92,7 @@ func main() {
 				}
 				var msg model.Message
 				msg = messages[msgIndex]
-				err = msgEmitter.EmitSync(strconv.FormatInt(msg.ID, 10), msg)
+				err = msgEmitter.EmitSync(msg.IDToString(), msg)
 				if err != nil {
 					msgLogger.Error("Failed to emit message: %#v, error %v", msg, err)
 					break
@@ -106,6 +105,15 @@ func main() {
 	// 3. запускаем эмиттер для загрузки обновления кто кого заблокировал
 	// 4. запускаем процессор для проверки возможности отправки отдельно взятого сообщения между пользователями
 	// 5. запускаем процессор для выполнения задачи цензуры над сообщением
+	wg.Add(1)
+	go func(ctx context.Context, wg *sync.WaitGroup) {
+		defer wg.Done()
+
+		censor := processor.NewCensor(cfg)
+		censor.Cens(ctx, cfg, new(jsCode.JsonCodec[model.Message]))
+
+	}(ctx, &wg)
+
 	// 6. запускаем процессор для вывода на экран, какое кому сообщение "будет" отправлено
 	wg.Add(1)
 	go func(ctx context.Context, wg *sync.WaitGroup) {
