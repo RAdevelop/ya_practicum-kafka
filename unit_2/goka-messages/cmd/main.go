@@ -50,7 +50,7 @@ func main() {
 			}
 		}(bwEmitter)
 
-		badWordList := []string{"bad", "word"}
+		badWordList := []string{"bad", "word", "world"}
 
 		for _, badWord := range badWordList {
 			err = bwEmitter.EmitSync("bad_word", badWord)
