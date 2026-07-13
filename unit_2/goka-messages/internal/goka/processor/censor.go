@@ -161,10 +161,11 @@ func (c *Censor) processCensForMessage(ctx goka.Context, msg interface{}, view *
 	message, ok := msg.(model.Message)
 	if !ok {
 		c.logger.Error("wrong message type: %T\n", msg)
+		// наверное, тут надо складывать такие сообщения в DQL-топик
 		return
 	}
 
-	mapBadWord, err := view.Get("bad_word") //TODO bad_word - надо вынести в конфиг
+	mapBadWord, err := view.Get(c.config.KeyTopic.BadWords)
 	if err != nil {
 		c.logger.Error("failed to get banned words: %v", err)
 		// продолжаем без цензуры
@@ -177,6 +178,7 @@ func (c *Censor) processCensForMessage(ctx goka.Context, msg interface{}, view *
 	var store badWordsStore
 	if store, ok = mapBadWord.(badWordsStore); !ok {
 		c.logger.Error("wrong store type: %T", mapBadWord)
+		// продолжаем без цензуры
 		ctx.Emit(c.config.Topic.FilteredMessages, message.IDToString(), message)
 		return
 	}
@@ -188,6 +190,7 @@ func (c *Censor) processCensForMessage(ctx goka.Context, msg interface{}, view *
 	ctx.Emit(c.config.Topic.FilteredMessages, message.IDToString(), message)
 }
 
+// replaceBadWordWithMask - замена слов в тексте на их маски
 func (c *Censor) replaceBadWordWithMask(text string, store badWordsStore) string {
 	if len(store.Words) == 0 {
 		return text

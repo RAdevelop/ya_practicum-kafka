@@ -5,11 +5,12 @@ import (
 	"github.com/struct0x/envconfig"
 )
 
-// Config - TODO описать правильно структуру
+// Config - настройки для работы с эмиттерами, процессорами, view-таблицами
 type Config struct {
 	Brokers   []string   `env:"BROKERS" envDefault:"kafka-b-1:9092"`
 	Processor *processor `envPrefix:"PROCESSOR"`
 	Topic     *topic     `envPrefix:"TOPIC"`
+	KeyTopic  *keyTopic  `envPrefix:"KEY_TOPIC"`
 }
 
 func (c *Config) Load(envFilePath string) {
@@ -29,4 +30,7 @@ type topic struct {
 	BlockedUsers                 goka.Stream `env:"BLOCKED_USERS" envDefault:"blocked_users"`
 	BadWords                     goka.Stream `env:"BAD_WORDS" envDefault:"bad_words"`
 	MessagesNeedsCheckedByCensor goka.Stream `env:"MESSAGES_NEEDS_CHECKED_BY_CENSOR" envDefault:"messages_needs_checked_by_censor"`
+}
+type keyTopic struct {
+	BadWords string `env:"BAD_WORDS" envDefault:"bad_word"`
 }

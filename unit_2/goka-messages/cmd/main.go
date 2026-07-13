@@ -53,7 +53,7 @@ func main() {
 		badWordList := []string{"bad", "word", "world"}
 
 		for _, badWord := range badWordList {
-			err = bwEmitter.EmitSync("bad_word", badWord)
+			err = bwEmitter.EmitSync(cfg.KeyTopic.BadWords, badWord)
 			if err != nil {
 				bwLogger.Error("Failed to emit BadWord Emitter %v", err)
 			} else {
