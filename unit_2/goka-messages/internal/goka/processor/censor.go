@@ -28,11 +28,11 @@ func NewCensor(config config.Config) *Censor {
 	}
 }
 
-// Cens - запуск процесс применения цензуры
-func (c *Censor) Cens(ctx context.Context) {
+// Run - запуск процесс применения цензуры
+func (c *Censor) Run(ctx context.Context) {
 	codecBabWord := new(jsCodec.JsonCodec[store.BadWordsStore])
 
-	viewBabWords, err := view.NewBadWords(ctx, codecBabWord, c.config, c.logger)
+	viewBadWords, err := view.NewView(ctx, c.config.ViewTable.CensorWord, codecBabWord, c.config, c.logger)
 	if err != nil {
 		c.logger.Error("Failed to create view for BadWords: %v", err)
 		return
@@ -42,7 +42,7 @@ func (c *Censor) Cens(ctx context.Context) {
 	// определяем группу для цензуры
 	group := goka.DefineGroup(c.config.Processor.GroupCensorWord,
 		goka.Input(c.config.Topic.BadWords, new(codec.String), c.badWordsUpdate),
-		goka.Input(c.config.Topic.Messages, new(jsCodec.JsonCodec[model.Message]), c.createMessageHandler(viewBabWords)),
+		goka.Input(c.config.Topic.Messages, new(jsCodec.JsonCodec[model.Message]), c.createMessageHandler(viewBadWords)),
 		goka.Persist(codecBabWord),
 		goka.Output(c.config.Topic.FilteredMessages, new(jsCodec.JsonCodec[model.Message])),
 	)
@@ -53,9 +53,9 @@ func (c *Censor) Cens(ctx context.Context) {
 	}
 	defer p.Stop()
 
-	log.Println("Starting processor...")
-	if err := p.Run(ctx); err != nil {
-		log.Printf("Processor error: %v", err)
+	c.logger.Info("Starting processor...")
+	if err = p.Run(ctx); err != nil {
+		c.logger.Info("Processor error: %v", err)
 	}
 }
 

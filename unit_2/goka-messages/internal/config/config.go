@@ -11,26 +11,34 @@ type Config struct {
 	Processor *processor `envPrefix:"PROCESSOR"`
 	Topic     *topic     `envPrefix:"TOPIC"`
 	KeyTopic  *keyTopic  `envPrefix:"KEY_TOPIC"`
+	ViewTable *viewTable
 }
 
 func (c *Config) Load(envFilePath string) {
 	if err := envconfig.Read(c, envconfig.EnvFileLookup(envFilePath)); err != nil {
 		panic(err)
 	}
+
+	c.ViewTable.CensorWord = goka.Table(c.Processor.GroupCensorWord + "-table")
+	c.ViewTable.BlockedUsers = goka.Table(c.Processor.GroupBlockedUser + "-table")
 }
 
 type processor struct {
 	GroupCensorWord  goka.Group `env:"GROUP_CENSOR_WORD" envDefault:"group-censor-word"`
-	GroupBlockedUser goka.Group `env:"GROUP_BLOCKED_USERS" envDefault:"group-blocked-user"`
+	GroupBlockedUser goka.Group `env:"GROUP_BLOCKED_USERS" envDefault:"group-blocked-users"`
 	GroupSender      goka.Group `env:"GROUP_SENDER" envDefault:"group-sender"`
 }
 type topic struct {
-	Messages                     goka.Stream `env:"MESSAGES" envDefault:"messages"`
-	FilteredMessages             goka.Stream `env:"FILTERED_MESSAGES" envDefault:"filtered_messages"`
-	BlockedUsers                 goka.Stream `env:"BLOCKED_USERS" envDefault:"blocked_users"`
-	BadWords                     goka.Stream `env:"BAD_WORDS" envDefault:"bad_words"`
-	MessagesNeedsCheckedByCensor goka.Stream `env:"MESSAGES_NEEDS_CHECKED_BY_CENSOR" envDefault:"messages_needs_checked_by_censor"`
+	Messages         goka.Stream `env:"MESSAGES" envDefault:"messages"`
+	FilteredMessages goka.Stream `env:"FILTERED_MESSAGES" envDefault:"filtered-messages"`
+	BlockedUsers     goka.Stream `env:"BLOCKED_USERS" envDefault:"blocked-users"`
+	BadWords         goka.Stream `env:"BAD_WORDS" envDefault:"bad-words"`
 }
 type keyTopic struct {
 	BadWords string `env:"BAD_WORDS" envDefault:"bad_word"`
+}
+
+type viewTable struct {
+	CensorWord   goka.Table `env:"CENSOR_WORD"`
+	BlockedUsers goka.Table `env:"BLOCKED_USERS"`
 }

@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -32,27 +32,111 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	// 1. запускаем эмиттер для загрузки запрещенных слов
+	// запускаем процессор для обновления состояния по блокировкам пользователей
+	//var processorBlockUsersReady = make(chan struct{})
 	wg.Add(1)
-	go func(ctx context.Context, wg *sync.WaitGroup) {
-		defer wg.Done()
+	go processorBlockUsers(ctx, cfg, &wg)
 
-		bwLogger := logger.New("[BadWordEmitter]")
-		bwEmitter, err := emitter.NewEmitter(cfg.Topic.BadWords, cfg, new(codec.String))
+	// запускаем эмиттер для событий кто кого заблокировал
+
+	wg.Add(1)
+	go emitterBlockedUsers(ctx, cfg, &wg)
+
+	/*
+		// запускаем эмиттер для загрузки запрещенных слов
+		wg.Add(1)
+		go emitterBadWord(ctx, cfg, &wg)
+
+		// запускаем эмиттер для генерации сообщений
+		wg.Add(1)
+		go emitterMessage(ctx, cfg, &wg)
+
+		// запускаем процессор для выполнения задачи цензуры над сообщением
+		wg.Add(1)
+		go processorCensor(ctx, cfg, &wg)
+
+		// 6. запускаем процессор для вывода на экран, какое кому сообщение "будет" отправлено
+		wg.Add(1)
+		go processorMessageSender(ctx, cfg, &wg)
+	*/
+
+	// Обрабатываем сигнал в отдельной горутине
+	go func() {
+		wait := make(chan os.Signal, 1)
+		signal.Notify(wait, syscall.SIGINT, syscall.SIGTERM)
+		<-wait
+		log.Println("Received shutdown signal, cancelling context...")
+		cancelApp()
+	}()
+
+	// Ждем завершения всех горутин
+	wg.Wait()
+	log.Println("All goroutines finished")
+}
+
+func emitterBlockedUsers(ctx context.Context, cfg config.Config, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	buLogger := logger.New("[BlockedUsersEmitter]")
+	buEmitter, err := emitter.NewEmitter(cfg.Topic.BlockedUsers, cfg, new(codec.String))
+	if err != nil {
+		buLogger.Error("Failed to create BadWord Emitter %v", err)
+		return
+	}
+	defer func(buEmitter *emitter.Emitter) {
+		err = buEmitter.Finish()
 		if err != nil {
-			bwLogger.Error("Failed to create BadWord Emitter %v", err)
+			buLogger.Error("Failed to finish BlockedUsers Emitter %v", err)
 			return
 		}
-		defer func(bwEmitter *emitter.Emitter) {
-			err = bwEmitter.Finish()
+		buLogger.Info("BlockedUsers Emitter stopped")
+	}(buEmitter)
+
+	blockEvents := map[string]string{
+		"block:1:2": "1", // пользователь 1 блокирует пользователя 2
+		"block:1:3": "1", // пользователь 1 блокирует пользователя 3
+		"block:2:1": "2", // пользователь 2 блокирует пользователя 1
+	}
+
+	for blockEvent, blockerID := range blockEvents {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			err = buEmitter.EmitSync(blockerID, blockEvent)
 			if err != nil {
-				bwLogger.Error("Failed to finish BadWord Emitter %v", err)
+				buLogger.Error("Failed to emit blockEvent Emitter %v", err)
+			} else {
+				buLogger.Info("Emitted blockEvent %s", blockEvent)
 			}
-		}(bwEmitter)
+		}
+	}
+	<-ctx.Done()
+}
 
-		badWordList := []string{"bad", "word", "world"}
+func emitterBadWord(ctx context.Context, cfg config.Config, wg *sync.WaitGroup) {
+	defer wg.Done()
 
-		for _, badWord := range badWordList {
+	bwLogger := logger.New("[BadWordEmitter]")
+	bwEmitter, err := emitter.NewEmitter(cfg.Topic.BadWords, cfg, new(codec.String))
+	if err != nil {
+		bwLogger.Error("Failed to create BadWord Emitter %v", err)
+		return
+	}
+	defer func(bwEmitter *emitter.Emitter) {
+		err = bwEmitter.Finish()
+		if err != nil {
+			bwLogger.Error("Failed to finish BadWord Emitter %v", err)
+		}
+	}(bwEmitter)
+
+	badWordList := []string{"bad", "word", "world"}
+
+	for _, badWord := range badWordList {
+		select {
+		case <-ctx.Done():
+			return
+		default:
 			err = bwEmitter.EmitSync(cfg.KeyTopic.BadWords, badWord)
 			if err != nil {
 				bwLogger.Error("Failed to emit BadWord Emitter %v", err)
@@ -60,98 +144,77 @@ func main() {
 				bwLogger.Info("Emitted BadWord %s", badWord)
 			}
 		}
-	}(ctx, &wg)
-	// 2. запускаем эмиттер для генерации сообщений
-	wg.Add(1)
-	go func(ctx context.Context, wg *sync.WaitGroup) {
-		defer wg.Done()
-		msgLogger := logger.New("[MessageEmitter]")
-		msgEmitter, err := emitter.NewEmitter(cfg.Topic.Messages, cfg, new(jsCode.JsonCodec[model.Message]))
+	}
+}
+
+func emitterMessage(ctx context.Context, cfg config.Config, wg *sync.WaitGroup) {
+	defer wg.Done()
+	msgLogger := logger.New("[MessageEmitter]")
+	msgEmitter, err := emitter.NewEmitter(cfg.Topic.Messages, cfg, new(jsCode.JsonCodec[model.Message]))
+	if err != nil {
+		msgLogger.Error("Failed to create MessageEmitter %v", err)
+		return
+	}
+	defer func(msgEmitter *emitter.Emitter) {
+		err = msgEmitter.Finish()
 		if err != nil {
-			msgLogger.Error("Failed to create MessageEmitter %v", err)
+			msgLogger.Error("Failed to finish MessageEmitter %v", err)
+		}
+	}(msgEmitter)
+
+	var msgIndex = 0
+	for {
+		select {
+		case <-ctx.Done():
+			msgLogger.Info("emitter for message generate has been stopped")
 			return
-		}
-		defer func(msgEmitter *emitter.Emitter) {
-			err = msgEmitter.Finish()
-			if err != nil {
-				msgLogger.Error("Failed to finish MessageEmitter %v", err)
-			}
-		}(msgEmitter)
+		case <-time.After(time.Second):
 
-		var msgIndex = 0
-		for {
-			select {
-			case <-ctx.Done():
-				msgLogger.Info("emitter for message generate has been stopped")
-				return
-			case <-time.After(time.Second):
-
-				msgLogger.Info("msgIndex = %d", msgIndex)
-				if msgIndex >= len(messages) {
-					return
-				}
-				var msg model.Message
-				msg = messages[msgIndex]
-				err = msgEmitter.EmitSync(msg.IDToString(), msg)
-				if err != nil {
-					msgLogger.Error("Failed to emit message: %#v, error %v", msg, err)
-					break
-				}
-				msgLogger.Info("Emitted Message: %#v", msg)
-				msgIndex++
-			}
-		}
-	}(ctx, &wg)
-	// 3. запускаем эмиттер для загрузки обновления кто кого заблокировал
-	// 4. запускаем процессор для проверки возможности отправки отдельно взятого сообщения между пользователями
-	// 5. запускаем процессор для выполнения задачи цензуры над сообщением
-	wg.Add(1)
-	go func(ctx context.Context, wg *sync.WaitGroup) {
-		defer wg.Done()
-
-		censor := processor.NewCensor(cfg)
-		censor.Cens(ctx)
-
-	}(ctx, &wg)
-
-	// 6. запускаем процессор для вывода на экран, какое кому сообщение "будет" отправлено
-	wg.Add(1)
-	go func(ctx context.Context, wg *sync.WaitGroup) {
-		defer wg.Done()
-		var messageSender = processor.NewMessageSender()
-		messageSender.Send(ctx, cfg, new(jsCode.JsonCodec[model.Message]))
-	}(ctx, &wg)
-
-	go func() {
-		defer func(pid int, signum syscall.Signal) {
-			err := syscall.Kill(pid, signum)
-			if err != nil {
-				fmt.Printf("Failed to kill process %d: %v", pid, err)
+			msgLogger.Info("msgIndex = %d", msgIndex)
+			if msgIndex >= len(messages) {
 				return
 			}
-			fmt.Printf("App has been stopped (pid: %d)", pid)
-		}(os.Getpid(), syscall.SIGTERM)
-		wg.Wait()
-	}()
+			var msg model.Message
+			msg = messages[msgIndex]
+			err = msgEmitter.EmitSync(msg.IDToString(), msg)
+			if err != nil {
+				msgLogger.Error("Failed to emit message: %#v, error %v", msg, err)
+				break
+			}
+			msgLogger.Info("Emitted Message: %#v", msg)
+			msgIndex++
+		}
+	}
+}
 
-	wait := make(chan os.Signal, 1)
-	signal.Notify(wait, syscall.SIGINT, syscall.SIGTERM)
-	<-wait
-	cancelApp()
+func processorBlockUsers(ctx context.Context, cfg config.Config, wg *sync.WaitGroup) {
+	defer wg.Done()
 
+	pBlockUsers := processor.NewUserBlocker(cfg)
+	pBlockUsers.Run(ctx)
+}
+
+func processorMessageSender(ctx context.Context, cfg config.Config, wg *sync.WaitGroup) {
+	defer wg.Done()
+	var messageSender = processor.NewMessageSender()
+	messageSender.Send(ctx, cfg, new(jsCode.JsonCodec[model.Message]))
+}
+
+func processorCensor(ctx context.Context, cfg config.Config, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	censor := processor.NewCensor(cfg)
+	censor.Run(ctx)
 }
 
 var user1 = model.User{
-	ID:            1,
-	AcceptBadWord: true,
+	ID: 1,
 }
 var user2 = model.User{
-	ID:            2,
-	AcceptBadWord: true,
+	ID: 2,
 }
 var user3 = model.User{
-	ID:            3,
-	AcceptBadWord: true,
+	ID: 3,
 }
 
 var messages = []model.Message{
