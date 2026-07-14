@@ -45,6 +45,6 @@ func (ms MessageSender) messageProcess(ctx goka.Context, msg any) {
 		return
 	}
 
-	ms.logger.Info("send message ID= %d, FromUserID = %d, ToUserID = %d", message.ID, message.FromUserID, message.ToUserID)
-	ms.logger.Info("message: %#v\n", message)
+	ms.logger.Success("send message ID= %d, FromUserID = %d, ToUserID = %d", message.ID, message.FromUserID, message.ToUserID)
+	ms.logger.Success("message: %#v\n", message)
 }

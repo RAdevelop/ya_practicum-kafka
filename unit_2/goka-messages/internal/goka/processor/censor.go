@@ -8,56 +8,13 @@ import (
 
 	"github.com/RAdevelop/ya_practicum-kafka/unit_2/goka-messages/internal/config"
 	jsCodec "github.com/RAdevelop/ya_practicum-kafka/unit_2/goka-messages/internal/goka/codec"
+	"github.com/RAdevelop/ya_practicum-kafka/unit_2/goka-messages/internal/goka/view"
 	"github.com/RAdevelop/ya_practicum-kafka/unit_2/goka-messages/internal/logger"
 	"github.com/RAdevelop/ya_practicum-kafka/unit_2/goka-messages/internal/model"
+	"github.com/RAdevelop/ya_practicum-kafka/unit_2/goka-messages/internal/store"
 	"github.com/lovoo/goka"
 	"github.com/lovoo/goka/codec"
 )
-
-// BannedWordsStore — хранилище запрещенных слов
-type badWordsStore struct {
-	Words map[string]string `json:"words"`
-}
-
-// AddWord - добавляем новое слово в список запрещенных
-func (s *badWordsStore) AddWord(word string) {
-
-	word = strings.TrimSpace(word)
-
-	if word == "" {
-		return
-	}
-
-	word = strings.ToLower(word)
-
-	if s.Words == nil {
-		s.Words = make(map[string]string)
-	}
-
-	if _, exists := s.Words[word]; exists {
-		return
-	}
-
-	s.Words[word] = (func(word string) string {
-		return strings.Repeat("*", len([]rune(word)))
-	})(word)
-}
-
-// GetMask - получаем маску для указанного слова
-func (s *badWordsStore) GetMask(word string) (string, bool) {
-	if s.Words == nil {
-		return "", false
-	}
-	word = strings.TrimSpace(word)
-	if word == "" {
-		return "", false
-	}
-	word = strings.ToLower(word)
-	if mask, exists := s.Words[word]; exists {
-		return mask, exists
-	}
-	return "", false
-}
 
 type Censor struct {
 	logger *logger.Logger
@@ -73,33 +30,19 @@ func NewCensor(config config.Config) *Censor {
 
 // Cens - запуск процесс применения цензуры
 func (c *Censor) Cens(ctx context.Context) {
-	codecBabWord := new(jsCodec.JsonCodec[badWordsStore])
+	codecBabWord := new(jsCodec.JsonCodec[store.BadWordsStore])
 
-	// Создаем View для чтения групповой таблицы (вот такая особенность работы с View)
-	// Это чтобы можно было в методах обработчиках получать доступ к значению карты запрещенных слов, что сохраняем в персистентной таблице
-	table := goka.Table(c.config.Processor.GroupCensorWord + "-table")
-	view, err := goka.NewView(
-		c.config.Brokers,
-		table,
-		codecBabWord,
-	)
+	viewBabWords, err := view.NewBadWords(ctx, codecBabWord, c.config, c.logger)
 	if err != nil {
-		c.logger.Error("Failed to create view: %v", err)
+		c.logger.Error("Failed to create view for BadWords: %v", err)
 		return
 	}
+	c.logger.Info("View for BadWords is ready")
 
-	// Запускаем View в отдельной горутине, чтобы view.Run не блокировал следующий код
-	go func() {
-		c.logger.Info("Starting View...")
-		if err := view.Run(ctx); err != nil {
-			c.logger.Error("View error: %v", err)
-		}
-	}()
-
-	// определяем группу для ценузры
+	// определяем группу для цензуры
 	group := goka.DefineGroup(c.config.Processor.GroupCensorWord,
 		goka.Input(c.config.Topic.BadWords, new(codec.String), c.badWordsUpdate),
-		goka.Input(c.config.Topic.Messages, new(jsCodec.JsonCodec[model.Message]), c.createMessageHandler(view)),
+		goka.Input(c.config.Topic.Messages, new(jsCodec.JsonCodec[model.Message]), c.createMessageHandler(viewBabWords)),
 		goka.Persist(codecBabWord),
 		goka.Output(c.config.Topic.FilteredMessages, new(jsCodec.JsonCodec[model.Message])),
 	)
@@ -118,9 +61,6 @@ func (c *Censor) Cens(ctx context.Context) {
 
 func (c *Censor) badWordsUpdate(ctx goka.Context, msg interface{}) {
 
-	defer c.logger.Info("badWordsUpdate finished\n")
-
-	c.logger.Info("badWordsUpdate start\n")
 	badWord, ok := msg.(string)
 	if !ok {
 		c.logger.Error("badWords update: message is not a string: %T", msg)
@@ -132,32 +72,28 @@ func (c *Censor) badWordsUpdate(ctx goka.Context, msg interface{}) {
 		return
 	}
 
-	var store badWordsStore
+	var badWordsStore store.BadWordsStore
 	if val := ctx.Value(); val != nil {
-		store, ok = val.(badWordsStore)
+		badWordsStore, ok = val.(store.BadWordsStore)
 		if !ok {
 			c.logger.Error("wrong store type: %T", val)
 		}
 	}
 
-	store.AddWord(badWord)
-	ctx.SetValue(store)
-	c.logger.Success("badWords updated: %#v", store)
+	badWordsStore.AddWord(badWord)
+	ctx.SetValue(badWordsStore)
+	c.logger.Success("badWords updated: %#v", badWordsStore)
 }
 
 // createMessageHandler создает обработчик с доступом к View для карты с запрещенными словами
-func (c *Censor) createMessageHandler(view *goka.View) func(ctx goka.Context, msg interface{}) {
+func (c *Censor) createMessageHandler(viewBadWords *goka.View) func(ctx goka.Context, msg interface{}) {
 	return func(ctx goka.Context, msg interface{}) {
-		c.processCensForMessage(ctx, msg, view)
+		c.processCensForMessage(ctx, msg, viewBadWords)
 	}
 }
 
 // processCensForMessage - фильтруем текст сообщения по запрещенным словам, они будут заменены на маску "*"
-func (c *Censor) processCensForMessage(ctx goka.Context, msg interface{}, view *goka.View) {
-	defer c.logger.Info("processCensForMessage finished\n")
-
-	c.logger.Info("processCensForMessage started\n")
-
+func (c *Censor) processCensForMessage(ctx goka.Context, msg interface{}, viewBadWords *goka.View) {
 	message, ok := msg.(model.Message)
 	if !ok {
 		c.logger.Error("wrong message type: %T\n", msg)
@@ -165,7 +101,7 @@ func (c *Censor) processCensForMessage(ctx goka.Context, msg interface{}, view *
 		return
 	}
 
-	mapBadWord, err := view.Get(c.config.KeyTopic.BadWords)
+	mapBadWord, err := viewBadWords.Get(c.config.KeyTopic.BadWords)
 	if err != nil {
 		c.logger.Error("failed to get banned words: %v", err)
 		// продолжаем без цензуры
@@ -175,8 +111,8 @@ func (c *Censor) processCensForMessage(ctx goka.Context, msg interface{}, view *
 
 	c.logger.Info("mapBadWord = %#v", mapBadWord)
 
-	var store badWordsStore
-	if store, ok = mapBadWord.(badWordsStore); !ok {
+	var badWordsStore store.BadWordsStore
+	if badWordsStore, ok = mapBadWord.(store.BadWordsStore); !ok {
 		c.logger.Error("wrong store type: %T", mapBadWord)
 		// продолжаем без цензуры
 		ctx.Emit(c.config.Topic.FilteredMessages, message.IDToString(), message)
@@ -184,15 +120,16 @@ func (c *Censor) processCensForMessage(ctx goka.Context, msg interface{}, view *
 	}
 
 	// Применяем цензуру
-	message.Text = c.replaceBadWordWithMask(message.Text, store)
+	message.Text = c.replaceBadWordWithMask(message.Text, badWordsStore.Words)
 
-	c.logger.Info("process messageID= %s, %#v", message.IDToString(), message)
+	c.logger.Success("process messageID= %s, %#v", message.IDToString(), message)
 	ctx.Emit(c.config.Topic.FilteredMessages, message.IDToString(), message)
 }
 
 // replaceBadWordWithMask - замена слов в тексте на их маски
-func (c *Censor) replaceBadWordWithMask(text string, store badWordsStore) string {
-	if len(store.Words) == 0 {
+// вообще, такой метод лучше вынести в отдельный пакет/класс, так как в целом, его можно будет использоваться не только для процесса цензуры
+func (c *Censor) replaceBadWordWithMask(text string, wordsStore map[string]string) string {
+	if len(wordsStore) == 0 {
 		return text
 	}
 
@@ -206,11 +143,9 @@ func (c *Censor) replaceBadWordWithMask(text string, store badWordsStore) string
 	// \p{L} — любая буква Unicode
 	re := regexp.MustCompile(`\p{L}+`)
 
-	c.logger.Info("replaceBadWordWithMask start")
-
 	result := re.ReplaceAllStringFunc(text, func(word string) string {
 		lowerWord := strings.ToLower(word)
-		if mask, exists := store.Words[lowerWord]; exists {
+		if mask, exists := wordsStore[lowerWord]; exists {
 			// Сохраняем регистр? Пока просто заменяем на маску
 			return mask
 		}
