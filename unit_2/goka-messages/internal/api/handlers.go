@@ -72,7 +72,7 @@ func (h *Handlers) GetBadWords(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.logger.Error("wrong type: %T", val)
-	http.Error(w, "Internal server error", http.StatusInternalServerError)
+	http.Error(w, "bad word list is empty", http.StatusBadRequest)
 }
 
 // PostBadWord - POST /bad-word — добавить запрещенное слово

@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: go-messages
+    hostname: go-messages
+    restart: unless-stopped
+    networks:
+      - unit_1_kafka-network
+    ports:
+      - "8181:8181"
+networks:
+  unit_1_kafka-network:
+    external: true

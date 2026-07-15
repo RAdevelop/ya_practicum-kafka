@@ -28,6 +28,7 @@ func main() {
 	ctx, cancelApp := context.WithCancel(context.Background())
 	defer cancelApp()
 
+	// создаем View таблицу для возможности получать данные из постоянного хранилища запрещенных слов
 	badWordsViewLogger := logger.New("[BadWordsView]")
 	badWordsView, err := view.NewView(ctx, cfg.ViewTable.BadWords, new(jsCodec.JsonCodec[store.BadWordsStore]), cfg, badWordsViewLogger)
 	if err != nil {
@@ -35,6 +36,7 @@ func main() {
 		return
 	}
 
+	// создаем View таблицу для возможности получать данные из постоянного хранилища состояний блокировок для пользователя
 	blockedUsersViewLogger := logger.New("[BlockedUsersView]")
 	blockedUserView, err := view.NewView(ctx, cfg.ViewTable.BlockedUsers, new(jsCodec.JsonCodec[*store.BlockedUsersStore]), cfg, blockedUsersViewLogger)
 	if err != nil {
@@ -42,6 +44,7 @@ func main() {
 		return
 	}
 
+	// создаем эмиттер для добавления новых запрещенных слов
 	badWordEmitter, err := emitter.NewEmitter(cfg.Topic.BadWords, cfg, new(codec.String))
 	if err != nil {
 		appLogger.Error("Failed to create badWordEmitter: %v", err)
@@ -53,6 +56,8 @@ func main() {
 			appLogger.Error("Failed to finish BadWord Emitter %v", err)
 		}
 	}()
+
+	// создаем эмиттер для обновления состояния блокировок
 	blockUserEmitter, err := emitter.NewEmitter(cfg.Topic.BlockedUsers, cfg, new(codec.String))
 	if err != nil {
 		appLogger.Error("Failed to create BlockUser Emitter: %v", err)
@@ -64,6 +69,8 @@ func main() {
 			appLogger.Error("Failed to finish BlockUser Emitter %v", err)
 		}
 	}()
+
+	// создаем эмиттер для отправки сообщений
 	messageEmitter, err := emitter.NewEmitter(cfg.Topic.Messages, cfg, new(jsCodec.JsonCodec[model.Message]))
 	if err != nil {
 		appLogger.Error("Failed to create Message Emitter: %v", err)
@@ -87,6 +94,7 @@ func main() {
 		BlockedUserView: blockedUserView,
 	}
 
+	// http обработчики для возможности добавлять данные в топики
 	handlers := api.NewHandlers(cfg, views, emitters)
 
 	server := api.NewServer(handlers)
@@ -94,15 +102,19 @@ func main() {
 	var wg sync.WaitGroup
 
 	wg.Add(1)
+	// процессор для отслеживания нового запрещенного слова и обновления постоянного хранилища для них
 	go processorBadWord(ctx, cfg, &wg)
 
 	wg.Add(1)
+	// процессор для обновления состояния блокировок по пользователям
 	go processorBlockUser(ctx, cfg, &wg)
 
 	wg.Add(1)
+	// процессор для цензуры (проверяет блокировки, если их нет - применяет цензуру, и отправляет сообщения дальше)
 	go processorCensor(views, ctx, cfg, &wg)
 
 	wg.Add(1)
+	// процессор для демонстрации какие сообщения в итоге "отправляются дальше"
 	go processorMessageSender(ctx, cfg, &wg)
 
 	wg.Add(1)

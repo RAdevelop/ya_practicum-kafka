@@ -19,6 +19,8 @@ func NewServer(handlers *Handlers) *Server {
 	mux := http.NewServeMux()
 
 	// Регистрируем эндпоинты
+
+	// выводит список запрещенных слов из постоянного хранилища
 	mux.HandleFunc("GET /bad-words", handlers.GetBadWords)
 	// PostBadWord - имя оставим такое, хоть и GET запрос (чтобы не реализовывать html форму)
 	mux.HandleFunc("GET /bad-word", handlers.PostBadWord)
@@ -28,12 +30,7 @@ func NewServer(handlers *Handlers) *Server {
 	mux.HandleFunc("GET /user-block/{user_id}/{action}/{block_uid}", handlers.PostUserBlockAction)
 	// PostMessage
 	mux.HandleFunc("GET /message/{from_uid}/{to_uid}/", handlers.PostMessage)
-	/*
-		mux.HandleFunc("GET /filtered-messages", handlers.GetFilteredMessages)
 
-		mux.HandleFunc("POST /message", handlers.PostMessage)
-		mux.HandleFunc("POST /user-block", handlers.PostUserBlock)
-	*/
 	return &Server{
 		httpServer: &http.Server{
 			Addr:         ":8181",
