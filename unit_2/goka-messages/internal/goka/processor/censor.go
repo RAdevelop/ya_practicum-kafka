@@ -16,6 +16,9 @@ import (
 	"github.com/lovoo/goka"
 )
 
+// regAnyLetter - \p{L} — любая буква Unicode
+var regAnyLetter = regexp.MustCompile(`\p{L}+`)
+
 type Censor struct {
 	logger *logger.Logger
 	config config.Config
@@ -70,11 +73,11 @@ func (c *Censor) processCensForMessage(ctx goka.Context, msg any) {
 
 	var blockedUsersStore *store.BlockedUsersStore
 	blockedUsersStore, ok = blockedUser.(*store.BlockedUsersStore)
-	if !ok {
-		c.logger.Error("wrong store type: %T", blockedUser)
-	} else if _, exists := blockedUsersStore.BlockedUserIDs[fromUserID]; exists {
-		c.logger.Error("can't send message FromUserID to ToUserID, cause FromUserID is blocked, message=%v", message)
-		return
+	if ok {
+		if _, exists := blockedUsersStore.BlockedUserIDs[fromUserID]; exists {
+			c.logger.Error("can't send message FromUserID to ToUserID, cause FromUserID is blocked, message=%v", message)
+			return
+		}
 	}
 
 	mapBadWord, err := c.views.BadWordsView.Get(c.config.KeyTopic.BadWords)
@@ -116,10 +119,8 @@ func (c *Censor) replaceBadWordWithMask(text string, wordsStore map[string]strin
 	}
 	// Заменяем только слова, сохраняя все остальное (пробелы, пунктуацию)
 	// Создаем регулярное выражение для поиска всех слов
-	// \p{L} — любая буква Unicode
-	re := regexp.MustCompile(`\p{L}+`)
 
-	result := re.ReplaceAllStringFunc(text, func(word string) string {
+	result := regAnyLetter.ReplaceAllStringFunc(text, func(word string) string {
 		lowerWord := strings.ToLower(word)
 		if mask, exists := wordsStore[lowerWord]; exists {
 			// Сохраняем регистр? Пока просто заменяем на маску
