@@ -42,7 +42,7 @@
   - `blocked-users` - в который будем писать кто кого заблокировал для себя
   - `filtered-messages` - сообщения, прошедшие через цензуру, и готовые для получения пользователями
 - Постоянное хранилище:
-  - `group-censor-word-table` - постоянное хранилище для запрещенных слов
+  - `group-bad-word-table` - постоянное хранилище для запрещенных слов
   - `group-blocked-users-table` - постоянное хранилище для заблокированных пользователей
 
 ## Создание топиков
@@ -51,34 +51,9 @@
 
 ```bash
 docker exec -it kafka-b-1 kafka-topics --create --topic messages --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --config min.insync.replicas=2
-```
-
-- bad-words:
-
-```bash
 docker exec -it kafka-b-1 kafka-topics --create --topic bad-words --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --config min.insync.replicas=2
-```
-
-- blocked-users:
-
-```bash
 docker exec -it kafka-b-1 kafka-topics --create --topic blocked-users --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --config min.insync.replicas=2
-```
-
-- filtered-messages:
-
-```bash
 docker exec -it kafka-b-1 kafka-topics --create --topic filtered-messages --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --config min.insync.replicas=2
-```
-
-- group-censor-word-table:
-
-```bash
-docker exec -it kafka-b-1 kafka-topics --create --topic group-censor-word-table --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --config min.insync.replicas=2 --config cleanup.policy=compact
-```
-
-- group-blocked-users-table:
-
-```bash
+docker exec -it kafka-b-1 kafka-topics --create --topic group-bad-word-table --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --config min.insync.replicas=2 --config cleanup.policy=compact
 docker exec -it kafka-b-1 kafka-topics --create --topic group-blocked-users-table --bootstrap-server localhost:9092 --partitions 3 --replication-factor 3 --config min.insync.replicas=2 --config cleanup.policy=compact
 ```

@@ -4,46 +4,37 @@ import (
 	"context"
 	"log"
 	"regexp"
+	"strconv"
 	"strings"
 
+	"github.com/RAdevelop/ya_practicum-kafka/unit_2/goka-messages/internal/api"
 	"github.com/RAdevelop/ya_practicum-kafka/unit_2/goka-messages/internal/config"
 	jsCodec "github.com/RAdevelop/ya_practicum-kafka/unit_2/goka-messages/internal/goka/codec"
-	"github.com/RAdevelop/ya_practicum-kafka/unit_2/goka-messages/internal/goka/view"
 	"github.com/RAdevelop/ya_practicum-kafka/unit_2/goka-messages/internal/logger"
 	"github.com/RAdevelop/ya_practicum-kafka/unit_2/goka-messages/internal/model"
 	"github.com/RAdevelop/ya_practicum-kafka/unit_2/goka-messages/internal/store"
 	"github.com/lovoo/goka"
-	"github.com/lovoo/goka/codec"
 )
 
 type Censor struct {
 	logger *logger.Logger
 	config config.Config
+	views  *api.Views
 }
 
-func NewCensor(config config.Config) *Censor {
+func NewCensor(config config.Config, views *api.Views) *Censor {
 	return &Censor{
 		logger: logger.New("[CensorProcessor]"),
 		config: config,
+		views:  views,
 	}
 }
 
 // Run - запуск процесс применения цензуры
 func (c *Censor) Run(ctx context.Context) {
-	codecBabWord := new(jsCodec.JsonCodec[store.BadWordsStore])
-
-	viewBadWords, err := view.NewView(ctx, c.config.ViewTable.CensorWord, codecBabWord, c.config, c.logger)
-	if err != nil {
-		c.logger.Error("Failed to create view for BadWords: %v", err)
-		return
-	}
-	c.logger.Info("View for BadWords is ready")
-
 	// определяем группу для цензуры
 	group := goka.DefineGroup(c.config.Processor.GroupCensorWord,
-		goka.Input(c.config.Topic.BadWords, new(codec.String), c.badWordsUpdate),
-		goka.Input(c.config.Topic.Messages, new(jsCodec.JsonCodec[model.Message]), c.createMessageHandler(viewBadWords)),
-		goka.Persist(codecBabWord),
+		goka.Input(c.config.Topic.Messages, new(jsCodec.JsonCodec[model.Message]), c.processCensForMessage),
 		goka.Output(c.config.Topic.FilteredMessages, new(jsCodec.JsonCodec[model.Message])),
 	)
 
@@ -59,41 +50,8 @@ func (c *Censor) Run(ctx context.Context) {
 	}
 }
 
-func (c *Censor) badWordsUpdate(ctx goka.Context, msg any) {
-
-	badWord, ok := msg.(string)
-	if !ok {
-		c.logger.Error("badWords update: message is not a string: %T", msg)
-		return
-	}
-	// Нормализуем слово
-	badWord = strings.ToLower(strings.TrimSpace(badWord))
-	if badWord == "" {
-		return
-	}
-
-	var badWordsStore store.BadWordsStore
-	if val := ctx.Value(); val != nil {
-		badWordsStore, ok = val.(store.BadWordsStore)
-		if !ok {
-			c.logger.Error("wrong store type: %T", val)
-		}
-	}
-
-	badWordsStore.AddWord(badWord)
-	ctx.SetValue(badWordsStore)
-	c.logger.Success("badWords updated: %#v", badWordsStore)
-}
-
-// createMessageHandler создает обработчик с доступом к View для карты с запрещенными словами
-func (c *Censor) createMessageHandler(viewBadWords *goka.View) func(ctx goka.Context, msg any) {
-	return func(ctx goka.Context, msg any) {
-		c.processCensForMessage(ctx, msg, viewBadWords)
-	}
-}
-
 // processCensForMessage - фильтруем текст сообщения по запрещенным словам, они будут заменены на маску "*"
-func (c *Censor) processCensForMessage(ctx goka.Context, msg any, viewBadWords *goka.View) {
+func (c *Censor) processCensForMessage(ctx goka.Context, msg any) {
 	message, ok := msg.(model.Message)
 	if !ok {
 		c.logger.Error("wrong message type: %T\n", msg)
@@ -101,7 +59,25 @@ func (c *Censor) processCensForMessage(ctx goka.Context, msg any, viewBadWords *
 		return
 	}
 
-	mapBadWord, err := viewBadWords.Get(c.config.KeyTopic.BadWords)
+	toUserID := strconv.FormatInt(int64(message.ToUserID), 10)
+	fromUserID := strconv.FormatInt(int64(message.FromUserID), 10)
+	blockedUser, err := c.views.BlockedUserView.Get(toUserID)
+	if err != nil {
+		c.logger.Error("failed to get banned users for userID: %d, err: %v", message.ToUserID, err)
+	}
+
+	c.logger.Info("blockedUser = %#v", blockedUser)
+
+	var blockedUsersStore *store.BlockedUsersStore
+	blockedUsersStore, ok = blockedUser.(*store.BlockedUsersStore)
+	if !ok {
+		c.logger.Error("wrong store type: %T", blockedUser)
+	} else if _, exists := blockedUsersStore.BlockedUserIDs[fromUserID]; exists {
+		c.logger.Error("can't send message FromUserID to ToUserID, cause FromUserID is blocked, message=%v", message)
+		return
+	}
+
+	mapBadWord, err := c.views.BadWordsView.Get(c.config.KeyTopic.BadWords)
 	if err != nil {
 		c.logger.Error("failed to get banned words: %v", err)
 		// продолжаем без цензуры
@@ -122,7 +98,7 @@ func (c *Censor) processCensForMessage(ctx goka.Context, msg any, viewBadWords *
 	// Применяем цензуру
 	message.Text = c.replaceBadWordWithMask(message.Text, badWordsStore.Words)
 
-	c.logger.Success("process messageID= %s, %#v", message.IDToString(), message)
+	c.logger.Success("process messageID= %s, %+v", message.IDToString(), message)
 	ctx.Emit(c.config.Topic.FilteredMessages, message.IDToString(), message)
 }
 

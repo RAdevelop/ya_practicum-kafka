@@ -19,11 +19,12 @@ func (c *Config) Load(envFilePath string) {
 		panic(err)
 	}
 
-	c.ViewTable.CensorWord = goka.Table(c.Processor.GroupCensorWord + "-table")
+	c.ViewTable.BadWords = goka.Table(c.Processor.GroupBadWord + "-table")
 	c.ViewTable.BlockedUsers = goka.Table(c.Processor.GroupBlockedUser + "-table")
 }
 
 type processor struct {
+	GroupBadWord     goka.Group `env:"GROUP_BAD_WORD" envDefault:"group-bad-word"`
 	GroupCensorWord  goka.Group `env:"GROUP_CENSOR_WORD" envDefault:"group-censor-word"`
 	GroupBlockedUser goka.Group `env:"GROUP_BLOCKED_USERS" envDefault:"group-blocked-users"`
 	GroupSender      goka.Group `env:"GROUP_SENDER" envDefault:"group-sender"`
@@ -39,6 +40,6 @@ type keyTopic struct {
 }
 
 type viewTable struct {
-	CensorWord   goka.Table `env:"CENSOR_WORD"`
+	BadWords     goka.Table `env:"BAD_WORDS"`
 	BlockedUsers goka.Table `env:"BLOCKED_USERS"`
 }

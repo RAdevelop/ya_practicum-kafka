@@ -20,7 +20,7 @@ func NewMessageSender() *MessageSender {
 	}
 }
 
-func (ms MessageSender) Send(context context.Context, config config.Config, codec goka.Codec) {
+func (ms MessageSender) Run(context context.Context, config config.Config, codec goka.Codec) {
 
 	group := goka.DefineGroup(config.Processor.GroupSender,
 		goka.Input(config.Topic.FilteredMessages, codec, ms.messageProcess),

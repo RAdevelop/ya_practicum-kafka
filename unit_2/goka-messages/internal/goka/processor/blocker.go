@@ -20,7 +20,7 @@ type BlockProcessor struct {
 // NewUserBlocker — конструктор
 func NewUserBlocker(config config.Config) *BlockProcessor {
 	return &BlockProcessor{
-		logger: logger.New("[BlockProcessor]"),
+		logger: logger.New("[BlockUserProcessor]"),
 		config: config,
 	}
 }
