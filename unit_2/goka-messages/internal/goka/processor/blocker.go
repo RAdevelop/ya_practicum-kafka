@@ -30,7 +30,7 @@ func (b *BlockProcessor) Run(ctx context.Context) {
 	// Определяем группу процессора
 	group := goka.DefineGroup(b.config.Processor.GroupBlockedUser,
 		goka.Input(b.config.Topic.BlockedUsers, new(codec.String), b.processBlockEvent),
-		goka.Persist(new(jsCode.JsonCodec[store.BlockedUsersStore])),
+		goka.Persist(new(jsCode.JsonCodec[*store.BlockedUsersStore])),
 	)
 
 	p, err := goka.NewProcessor(b.config.Brokers, group)
@@ -68,10 +68,10 @@ func (b *BlockProcessor) processBlockEvent(ctx goka.Context, msg any) {
 	blockedID := parts[2]
 
 	// Читаем текущее состояние
-	var storeBlockedUsers store.BlockedUsersStore
+	var storeBlockedUsers *store.BlockedUsersStore
 	if val := ctx.Value(); val != nil {
 		var ok bool
-		storeBlockedUsers, ok = val.(store.BlockedUsersStore)
+		storeBlockedUsers, ok = val.(*store.BlockedUsersStore)
 		if !ok {
 			b.logger.Error("wrong store type: %T", val)
 			storeBlockedUsers = store.NewBlockedUsersStore(blockerID)
@@ -94,6 +94,6 @@ func (b *BlockProcessor) processBlockEvent(ctx goka.Context, msg any) {
 	// Сохраняем состояние
 	ctx.SetValue(storeBlockedUsers)
 	// в логах видим агрегированное состояние по пользователям
-	b.logger.Success("Blocked users for ctx.Key()= %s, ctx.Value() = %v", ctx.Key(), ctx.Value())
-	b.logger.Success("Blocked users for %s: %v", blockerID, storeBlockedUsers.BlockedUserIDs)
+	b.logger.Success("%s users for ctx.Key()= %s, ctx.Value() = %v", action, ctx.Key(), ctx.Value())
+	b.logger.Success("%s users for %s: %v", action, blockerID, storeBlockedUsers.BlockedUserIDs)
 }

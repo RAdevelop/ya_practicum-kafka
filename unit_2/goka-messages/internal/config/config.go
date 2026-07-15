@@ -35,7 +35,7 @@ type topic struct {
 	BadWords         goka.Stream `env:"BAD_WORDS" envDefault:"bad-words"`
 }
 type keyTopic struct {
-	BadWords string `env:"BAD_WORDS" envDefault:"bad_word"`
+	BadWords string `env:"BAD_WORDS" envDefault:"bad-word"`
 }
 
 type viewTable struct {

@@ -7,8 +7,8 @@ type BlockedUsersStore struct {
 	BlockedUserIDs map[string]bool `json:"blocked_user_ids"`
 }
 
-func NewBlockedUsersStore(userID string) BlockedUsersStore {
-	return BlockedUsersStore{
+func NewBlockedUsersStore(userID string) *BlockedUsersStore {
+	return &BlockedUsersStore{
 		UserID:         userID,
 		BlockedUserIDs: make(map[string]bool),
 	}

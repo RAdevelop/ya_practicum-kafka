@@ -23,7 +23,7 @@ func NewView(ctx context.Context, table goka.Table, codec goka.Codec, config con
 	// Запускаем View в отдельной горутине, чтобы view.Run не блокировал следующий код
 	go func() {
 		logger.Info("Starting view...")
-		if err := view.Run(ctx); err != nil {
+		if err = view.Run(ctx); err != nil {
 			logger.Error("view error: %v", err)
 		}
 	}()

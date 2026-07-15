@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"math/rand/v2"
 	"os"
 	"os/signal"
 	"sync"
@@ -22,10 +23,6 @@ func main() {
 
 	var cfg config.Config
 	cfg.Load(".env")
-	/*
-		fmt.Printf("%+v\n", cfg.Emitter.Brokers)
-		fmt.Printf("%+v\n", cfg.Processor.Brokers)
-	*/
 
 	ctx, cancelApp := context.WithCancel(context.Background())
 	defer cancelApp()
@@ -33,32 +30,28 @@ func main() {
 	var wg sync.WaitGroup
 
 	// запускаем процессор для обновления состояния по блокировкам пользователей
-	//var processorBlockUsersReady = make(chan struct{})
+	//wg.Add(1)
+	//go processorBlockUsers(ctx, cfg, &wg)
+
+	// запускаем процессор для выполнения задачи цензуры над сообщением
 	wg.Add(1)
-	go processorBlockUsers(ctx, cfg, &wg)
+	go processorCensor(ctx, cfg, &wg)
+
+	// запускаем процессор для вывода на экран, какое кому сообщение "будет" отправлено
+	wg.Add(1)
+	go processorMessageSender(ctx, cfg, &wg)
 
 	// запускаем эмиттер для событий кто кого заблокировал
+	//wg.Add(1)
+	//go emitterBlockedUsers(ctx, cfg, &wg)
 
+	// запускаем эмиттер для загрузки запрещенных слов
 	wg.Add(1)
-	go emitterBlockedUsers(ctx, cfg, &wg)
+	go emitterBadWord(ctx, cfg, &wg)
 
-	/*
-		// запускаем эмиттер для загрузки запрещенных слов
-		wg.Add(1)
-		go emitterBadWord(ctx, cfg, &wg)
-
-		// запускаем эмиттер для генерации сообщений
-		wg.Add(1)
-		go emitterMessage(ctx, cfg, &wg)
-
-		// запускаем процессор для выполнения задачи цензуры над сообщением
-		wg.Add(1)
-		go processorCensor(ctx, cfg, &wg)
-
-		// 6. запускаем процессор для вывода на экран, какое кому сообщение "будет" отправлено
-		wg.Add(1)
-		go processorMessageSender(ctx, cfg, &wg)
-	*/
+	// запускаем эмиттер для генерации сообщений
+	wg.Add(1)
+	go emitterMessage(ctx, cfg, &wg)
 
 	// Обрабатываем сигнал в отдельной горутине
 	go func() {
@@ -83,7 +76,11 @@ func emitterBlockedUsers(ctx context.Context, cfg config.Config, wg *sync.WaitGr
 		buLogger.Error("Failed to create BadWord Emitter %v", err)
 		return
 	}
+
+	ticker := time.NewTicker(3 * time.Second)
+
 	defer func(buEmitter *emitter.Emitter) {
+		ticker.Stop()
 		err = buEmitter.Finish()
 		if err != nil {
 			buLogger.Error("Failed to finish BlockedUsers Emitter %v", err)
@@ -92,17 +89,21 @@ func emitterBlockedUsers(ctx context.Context, cfg config.Config, wg *sync.WaitGr
 		buLogger.Info("BlockedUsers Emitter stopped")
 	}(buEmitter)
 
-	blockEvents := map[string]string{
-		"block:1:2": "1", // пользователь 1 блокирует пользователя 2
-		"block:1:3": "1", // пользователь 1 блокирует пользователя 3
-		"block:2:1": "2", // пользователь 2 блокирует пользователя 1
-	}
+	blockEvents := blockEventList()
 
-	for blockEvent, blockerID := range blockEvents {
+	for {
 		select {
 		case <-ctx.Done():
 			return
-		default:
+
+		// эмуляция блокировок/разблокировок между пользователями
+		case <-ticker.C:
+
+			indexEvent := rand.IntN(len(blockEvents))
+
+			blockEvent := blockEvents[indexEvent].Event
+			blockerID := blockEvents[indexEvent].BlockerID
+
 			err = buEmitter.EmitSync(blockerID, blockEvent)
 			if err != nil {
 				buLogger.Error("Failed to emit blockEvent Emitter %v", err)
@@ -111,7 +112,6 @@ func emitterBlockedUsers(ctx context.Context, cfg config.Config, wg *sync.WaitGr
 			}
 		}
 	}
-	<-ctx.Done()
 }
 
 func emitterBadWord(ctx context.Context, cfg config.Config, wg *sync.WaitGroup) {
@@ -123,7 +123,11 @@ func emitterBadWord(ctx context.Context, cfg config.Config, wg *sync.WaitGroup) 
 		bwLogger.Error("Failed to create BadWord Emitter %v", err)
 		return
 	}
+
+	ticker := time.NewTicker(3 * time.Second)
+
 	defer func(bwEmitter *emitter.Emitter) {
+		ticker.Stop()
 		err = bwEmitter.Finish()
 		if err != nil {
 			bwLogger.Error("Failed to finish BadWord Emitter %v", err)
@@ -131,12 +135,13 @@ func emitterBadWord(ctx context.Context, cfg config.Config, wg *sync.WaitGroup) 
 	}(bwEmitter)
 
 	badWordList := []string{"bad", "word", "world"}
-
-	for _, badWord := range badWordList {
+	for {
 		select {
 		case <-ctx.Done():
 			return
-		default:
+		case <-ticker.C:
+			indexWord := rand.IntN(len(badWordList))
+			badWord := badWordList[indexWord]
 			err = bwEmitter.EmitSync(cfg.KeyTopic.BadWords, badWord)
 			if err != nil {
 				bwLogger.Error("Failed to emit BadWord Emitter %v", err)
@@ -254,4 +259,27 @@ var messages = []model.Message{
 		ToUserID:   user2.ID,
 		Text:       "hello world",
 	},
+}
+
+type BlockEvent struct {
+	Event     string
+	BlockerID string
+}
+
+func blockEventList() []BlockEvent {
+	return []BlockEvent{
+		{Event: "block:1:2", BlockerID: "1"}, // пользователь 1 блокирует пользователя 2
+		{Event: "block:1:3", BlockerID: "1"}, // пользователь 1 блокирует пользователя 3
+		{Event: "block:2:1", BlockerID: "2"}, // пользователь 2 блокирует пользователя 1
+		{Event: "block:2:3", BlockerID: "2"}, // пользователь 2 блокирует пользователя 3
+		{Event: "block:3:1", BlockerID: "3"}, // пользователь 3 блокирует пользователя 1
+		{Event: "block:3:2", BlockerID: "3"}, // пользователь 3 блокирует пользователя 2
+
+		{Event: "unblock:1:2", BlockerID: "1"}, // пользователь 1 разблокирует пользователя 2
+		{Event: "unblock:1:3", BlockerID: "1"}, // пользователь 1 разблокирует пользователя 3
+		{Event: "unblock:2:1", BlockerID: "2"}, // пользователь 2 разблокирует пользователя 1
+		{Event: "unblock:2:3", BlockerID: "2"}, // пользователь 2 разблокирует пользователя 3
+		{Event: "unblock:3:1", BlockerID: "3"}, // пользователь 3 разблокирует пользователя 1
+		{Event: "unblock:3:2", BlockerID: "3"}, // пользователь 3 разблокирует пользователя 2
+	}
 }

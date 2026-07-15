@@ -59,7 +59,7 @@ func (c *Censor) Run(ctx context.Context) {
 	}
 }
 
-func (c *Censor) badWordsUpdate(ctx goka.Context, msg interface{}) {
+func (c *Censor) badWordsUpdate(ctx goka.Context, msg any) {
 
 	badWord, ok := msg.(string)
 	if !ok {
@@ -86,14 +86,14 @@ func (c *Censor) badWordsUpdate(ctx goka.Context, msg interface{}) {
 }
 
 // createMessageHandler создает обработчик с доступом к View для карты с запрещенными словами
-func (c *Censor) createMessageHandler(viewBadWords *goka.View) func(ctx goka.Context, msg interface{}) {
-	return func(ctx goka.Context, msg interface{}) {
+func (c *Censor) createMessageHandler(viewBadWords *goka.View) func(ctx goka.Context, msg any) {
+	return func(ctx goka.Context, msg any) {
 		c.processCensForMessage(ctx, msg, viewBadWords)
 	}
 }
 
 // processCensForMessage - фильтруем текст сообщения по запрещенным словам, они будут заменены на маску "*"
-func (c *Censor) processCensForMessage(ctx goka.Context, msg interface{}, viewBadWords *goka.View) {
+func (c *Censor) processCensForMessage(ctx goka.Context, msg any, viewBadWords *goka.View) {
 	message, ok := msg.(model.Message)
 	if !ok {
 		c.logger.Error("wrong message type: %T\n", msg)
