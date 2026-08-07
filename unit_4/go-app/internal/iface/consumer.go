@@ -1,13 +1,13 @@
 package iface
 
 import (
-    "context"
+	"context"
 
-    "github.com/RAdevelop/ya_practicum-kafka/unit_4/go-app/internal/logger"
+	"github.com/RAdevelop/ya_practicum-kafka/unit_4/go-app/internal/logger"
 )
 
 type Consumer[T any] interface {
-    Consume(context.Context, func(context.Context, *logger.Logger, []*T) error)
-    Close() error
-    SubscribeTopic(string) error
+	Consume(context.Context, func(context.Context, *logger.Logger, []*T) error)
+	Close() error
+	SubscribeTopic(string) error
 }
