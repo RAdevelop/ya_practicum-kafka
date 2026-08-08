@@ -38,18 +38,14 @@ curl -X POST -H "Content-Type: application/json" \
         "database.user": "postgres",
         "database.password": "postgres",
         "database.dbname": "customers",
-        "database.server.name": "postgres",
         "table.include.list": "public.users,public.orders",
         "plugin.name": "pgoutput",
         "snapshot.mode": "initial",
         "topic.prefix": "pg",
         "key.converter": "org.apache.kafka.connect.json.JsonConverter",
         "value.converter": "org.apache.kafka.connect.json.JsonConverter",
-        "transforms": "unwrap",
-        "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
-        "transforms.unwrap.drop.tombstones": "false",
-        "transforms.unwrap.delete.handling.mode": "none",
-        "transforms.unwrap.add.fields": "op,table,source.ts_ms",
+        "key.converter.schemas.enable": "false",
+        "value.converter.schemas.enable": "false",
         "message.key.columns": "public.users:id;public.orders:id",
         "name": "postgres-connector"
     },
@@ -71,13 +67,13 @@ curl http://localhost:8083/connectors/postgres-connector/status
     "name": "postgres-connector",
     "connector": {
         "state": "RUNNING",
-        "worker_id": "172.20.0.9:8083"
+        "worker_id": "172.20.0.10:8083"
     },
     "tasks": [
         {
             "id": 0,
             "state": "RUNNING",
-            "worker_id": "172.20.0.9:8083"
+            "worker_id": "172.20.0.10:8083"
         }
     ],
     "type": "source"
@@ -127,7 +123,7 @@ curl http://localhost:8083/connectors
 - `"snapshot.mode": "initial"`
   - Как часто делать снимки (`initial` - делает снимок при первом запуске)
 - `"topic.prefix": "pg"`
-  - Префикс для имён топиков Kafka (<prefix>.<schema>.<table> → pg.public.users).
+  - Префикс для имён топиков Kafka (`<prefix>.<schema>.<table>` -> `pg.public.users`).
 - `"key.converter": "org.apache.kafka.connect.json.JsonConverter"`
   - Конвертер для ключей сообщений (JSON).
 - `"value.converter": "org.apache.kafka.connect.json.JsonConverter"`
@@ -156,4 +152,13 @@ TODO
 
 # Пошаговые инструкции по проверке работоспособности решения
 
-TODO
+## Шаг 1
+
+Развернуть окружение. В результате:
+
+Доступны страницы:
+- http://localhost:8080/ - Kafka UI
+- http://localhost:9404/metrics - Метрики для сбора Prometheus, страница должна быть доступна, и вернуть данные.
+- http://localhost:9090/ - Prometheus UI
+  - http://localhost:9090/targets - можно увидеть Job-ы для сбора метрик
+- 

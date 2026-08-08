@@ -1,0 +1,26 @@
+rules:
+    - pattern: "kafka.connect<type=connect-worker-metrics>(.+)"
+      name: "kafka_connect_worker_$1"
+    - pattern: "kafka.connect<type=connector-metrics, connector=(.+)>(.+)"
+      name: "kafka_connect_connector_$1_$2"
+      labels:
+          connector: "$1"
+    - pattern: "kafka.connect<type=connector-task-metrics, connector=(.+), task=(.+)>(.+)"
+      name: "kafka_connect_task_$1_$2_$3"
+      labels:
+          connector: "$1"
+          task: "$2"
+    - pattern: "kafka.connect<type=sink-task-metrics, connector=(.+), task=(.+)>(.+)"
+      name: "kafka_connect_sink_task_$1_$2_$3"
+      labels:
+          connector: "$1"
+          task: "$2"
+    - pattern: "kafka.connect<type=source-task-metrics, connector=(.+), task=(.+)>(.+)"
+      name: "kafka_connect_source_task_$1_$2_$3"
+      labels:
+          connector: "$1"
+          task: "$2"
+    - pattern: "kafka.consumer<type=consumer-fetch-manager-metrics, client-id=(.+)>(.+)"
+      name: "kafka_consumer_fetch_manager_$2"
+      labels:
+          client_id: "$1"
