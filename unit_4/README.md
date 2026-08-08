@@ -348,8 +348,12 @@ INSERT 0 1
 
 ## Шаг 4 - в логах приложения Go увидим записи вида
 
-Данные, которые получает Kafka от Debezium: 
+Данные, которые получает Kafka от Debezium:
 
+```bash
+docker logs go-app
+```
+Увидим логи вида:
 ```bash
 INFO: 2026/08/07 21:59:27 ConsumerUsers: in file: main.go:117: Message:
 {

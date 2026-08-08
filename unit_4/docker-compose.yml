@@ -232,6 +232,15 @@ services:
     networks:
         - kafka-network
     restart: unless-stopped
+  app:
+      build:
+          context: .
+          dockerfile: docker/Dockerfile
+      container_name: go-app
+      hostname: go-app
+      restart: unless-stopped
+      networks:
+          - kafka-network
 
 volumes:
   kafka-c-1-data:
