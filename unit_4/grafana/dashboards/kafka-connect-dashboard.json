@@ -1,0 +1,95 @@
+{
+  "title": "Kafka Connect Monitoring",
+  "uid": "kafka-connect-dashboard",
+  "panels": [
+    {
+      "title": "Worker Connector Count",
+      "type": "stat",
+      "gridPos": {"x": 0, "y": 0, "w": 6, "h": 3},
+      "targets": [
+        {
+          "expr": "max({__name__=~\"kafka_connect_worker_connector_count.*\"})",
+          "legendFormat": "Connectors"
+        }
+      ]
+    },
+    {
+      "title": "Worker Task Count",
+      "type": "stat",
+      "gridPos": {"x": 6, "y": 0, "w": 6, "h": 3},
+      "targets": [
+        {
+          "expr": "max({__name__=~\"kafka_connect_worker_task_count.*\"})",
+          "legendFormat": "Tasks"
+        }
+      ]
+    },
+    {
+      "title": "Source Record Poll Rate (Records/sec)",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 3, "w": 8, "h": 4},
+      "targets": [
+        {
+          "expr": "rate({__name__=~\"kafka_connect_source_task.*_source_record_poll_rate.*\"}[1m])",
+          "legendFormat": "Poll Rate"
+        }
+      ]
+    },
+    {
+      "title": "Source Record Write Rate (Records/sec)",
+      "type": "graph",
+      "gridPos": {"x": 8, "y": 3, "w": 8, "h": 4},
+      "targets": [
+        {
+          "expr": "rate({__name__=~\"kafka_connect_source_task.*_source_record_write_rate.*\"}[1m])",
+          "legendFormat": "Write Rate"
+        }
+      ]
+    },
+    {
+      "title": "Source Record Poll Total (Cumulative)",
+      "type": "stat",
+      "gridPos": {"x": 0, "y": 7, "w": 6, "h": 3},
+      "targets": [
+        {
+          "expr": "max({__name__=~\"kafka_connect_source_task.*_source_record_poll_total.*\"})",
+          "legendFormat": "Total Polled"
+        }
+      ]
+    },
+    {
+      "title": "Source Record Write Total (Cumulative)",
+      "type": "stat",
+      "gridPos": {"x": 6, "y": 7, "w": 6, "h": 3},
+      "targets": [
+        {
+          "expr": "max({__name__=~\"kafka_connect_source_task.*_source_record_write_total.*\"})",
+          "legendFormat": "Total Written"
+        }
+      ]
+    },
+    {
+      "title": "Connector Startup Attempts",
+      "type": "stat",
+      "gridPos": {"x": 0, "y": 10, "w": 6, "h": 3},
+      "targets": [
+        {
+          "expr": "max({__name__=~\"kafka_connect_worker_connector_startup_attempts_total.*\"})",
+          "legendFormat": "Total Attempts"
+        }
+      ]
+    },
+    {
+      "title": "Connector Startup Success",
+      "type": "stat",
+      "gridPos": {"x": 6, "y": 10, "w": 6, "h": 3},
+      "targets": [
+        {
+          "expr": "max({__name__=~\"kafka_connect_worker_connector_startup_success_total.*\"})",
+          "legendFormat": "Success"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 36
+}

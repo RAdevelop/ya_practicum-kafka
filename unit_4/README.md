@@ -1,33 +1,40 @@
 # Развернуть окружение
 
+будет:
+- развернуто окружение
+- созданы топики
+- загружены настройки для коннектора
+- проверен его статус
+- получен список коннекторов
+
 ```bash
-docker-compose up -d
-```
-
-## Создать топики:
-
-Потому что для брокеров я прописал `KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"`.
-
-```bash
-docker exec -it kafka-b-1 kafka-topics --bootstrap-server localhost:9092 \
+docker-compose up -d \
+&& echo "wait for 30 seconds when environment is ready:\n" \
+&& sleep 30 \
+&& echo "crete topics:" \
+&& docker exec -it kafka-b-1 kafka-topics --bootstrap-server localhost:9092 \
   --create --topic pg.public.users \
   --partitions 3 \
   --replication-factor 2 \
 && docker exec -it kafka-b-1 kafka-topics --bootstrap-server localhost:9092 \
   --create --topic pg.public.orders \
   --partitions 3 \
-  --replication-factor 2
-```
-
-## Отправка конфигурации коннектора
-
-```bash
-curl -X POST -H "Content-Type: application/json" \
+  --replication-factor 2 \
+&& echo "\n" \
+&& echo "uploading debezium/debezium-config.json:" \
+&& curl -X POST -H "Content-Type: application/json" \
   --data @debezium/debezium-config.json \
-  http://localhost:8083/connectors
+  http://localhost:8083/connectors \
+&& echo "\n" \
+&& sleep 2 \
+&& echo "postgres-connector/status:" \
+&& curl http://localhost:8083/connectors/postgres-connector/status \
+&& echo "\n" \
+&& echo "connectors list:" \
+&& curl http://localhost:8083/connectors
 ```
 
-###  Результат
+###  Результат отправки конфигурации коннектора
 ```json
 {
     "name": "postgres-connector",
@@ -54,13 +61,7 @@ curl -X POST -H "Content-Type: application/json" \
 }
 ```
 
-## Проверить статус коннектора
-
-```bash
-curl http://localhost:8083/connectors/postgres-connector/status
-```
-
-###  Результат
+###  Результат статуса коннектора
 
 ```json
 {
@@ -82,13 +83,7 @@ curl http://localhost:8083/connectors/postgres-connector/status
 
 Из чего следует, что коннектор `postgres-connector` успешно запущен и работает.
 
-## Посмотреть все коннекторы
-
-```bash
-curl http://localhost:8083/connectors
-```
-
-###  Результат
+###  Результат списка коннекторов
 ```json
 [
     "postgres-connector"
@@ -152,13 +147,147 @@ TODO
 
 # Пошаговые инструкции по проверке работоспособности решения
 
-## Шаг 1
+## Шаг 1 -Развернуть окружение. 
 
-Развернуть окружение. В результате:
+## Шаг 2 - проверить результат развертывания
 
 Доступны страницы:
 - http://localhost:8080/ - Kafka UI
 - http://localhost:9404/metrics - Метрики для сбора Prometheus, страница должна быть доступна, и вернуть данные.
 - http://localhost:9090/ - Prometheus UI
   - http://localhost:9090/targets - можно увидеть Job-ы для сбора метрик
-- 
+- http://localhost:3000 - Grafana (login: admin, password: admin)
+  - смену пароля для проверки можно будет пропустить (а вообще, конечно лучше менять)
+  - http://localhost:3000/d/kafka-connect-dashboard/kafka-connect-monitoring?orgId=1&from=now-5m&to=now&timezone=browser (настроить метрики для дашборда - как самостоятлеьно, так и с помощью ИИ делал)
+    - есть дашборд для метрик:
+      - Worker Connector Count
+        - Показывает количество коннекторов, запущенных на данном worker'е Kafka Connect.
+        - Единица измерения: штуки (количество)
+        - Источник: `kafka_connect_worker_connector_count`
+      - Worker Task Count
+        - Показывает количество задач (`tasks`), запущенных на данном worker'е. Обычно каждый коннектор имеет 1 или более задач для параллельной обработки.
+        - Единица измерения: штуки (количество)
+        - Источник: `kafka_connect_worker_task_count`
+      - Source Record Poll Rate (Records/sec)
+        - Скорость, с которой source-коннектор извлекает (poll) записи из источника данных (БД, файловая система, API) до применения трансформаций. Показывает интенсивность чтения данных.
+        - Единица измерения: записей в секунду
+        - Источник: `kafka_connect_source_task_postgres_connector_0_source_record_poll_rate`
+        - Как увидеть изменение:
+          - Вставить новые данные в PostgreSQL:
+            ```sql
+            INSERT INTO users (name, email) VALUES ('John Doe', 'john@example.com');
+            INSERT INTO users (name, email) VALUES ('Jane Smith', 'jane@example.com');
+            INSERT INTO users (name, email) VALUES ('Alice Johnson', 'alice@example.com');
+            INSERT INTO users (name, email) VALUES ('Bob Brown', 'bob@example.com');
+           ```
+      - Source Record Write Rate (Records/sec)
+        - Скорость, с которой source-коннектор записывает (write) данные в Kafka после применения трансформаций. Это количество сообщений, которые реально попадают в топики Kafka.
+        - Единица измерения: записей в секунду
+        - Источник: `kafka_connect_source_task_postgres_connector_0_source_record_write_rate`
+        - Write Rate увеличится аналогично Poll Rate
+      - Connector Startup Attempts
+        - Общее количество попыток запуска коннекторов на данном worker'е. Увеличивается при каждом запуске коннектора, независимо от успеха.
+        - Единица измерения: количество попыток (cumulative counter)
+        - Источник: `kafka_connect_worker_connector_startup_attempts_total`
+      - Connector Startup Success
+        - Количество успешных запусков коннекторов. Если коннектор запустился без ошибок, этот счетчик увеличивается.
+        - Единица измерения: количество успешных запусков (cumulative counter)
+        - Источник: `kafka_connect_worker_connector_startup_success_tota`
+        - Перезапустить успешно работающий коннектор:
+          ```bash
+            curl -X POST http://localhost:8083/connectors/postgres-connector/restart
+          ```
+          - Startup Success увеличится на 1
+
+## Шаг 3 - Вставить новые данные в PostgreSQL:
+
+```bash
+docker exec -i postgres psql -U postgres -d customers << EOF
+INSERT INTO users (name, email) VALUES ('John Doe', 'john@example.com');
+INSERT INTO users (name, email) VALUES ('Jane Smith', 'jane@example.com');
+INSERT INTO users (name, email) VALUES ('Alice Johnson', 'alice@example.com');
+INSERT INTO users (name, email) VALUES ('Bob Brown', 'bob@example.com');
+INSERT INTO orders (user_id, product_name, quantity) VALUES (1, 'Product A', 2);
+INSERT INTO orders (user_id, product_name, quantity) VALUES (1, 'Product B', 1);
+INSERT INTO orders (user_id, product_name, quantity) VALUES (2, 'Product C', 5);
+INSERT INTO orders (user_id, product_name, quantity) VALUES (3, 'Product D', 3);
+INSERT INTO orders (user_id, product_name, quantity) VALUES (4, 'Product E', 4);
+SELECT * FROM users;
+SELECT * FROM orders;
+EOF 
+```
+
+Результат будет вида:
+
+```bash
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+ id |     name      |       email       |         created_at         
+----+---------------+-------------------+----------------------------
+  1 | John Doe      | john@example.com  | 2026-08-08 15:06:59.88063
+  2 | Jane Smith    | jane@example.com  | 2026-08-08 15:06:59.883732
+  3 | Alice Johnson | alice@example.com | 2026-08-08 15:06:59.884607
+  4 | Bob Brown     | bob@example.com   | 2026-08-08 15:06:59.885291
+(4 rows)
+
+ id | user_id | product_name | quantity |         order_date         
+----+---------+--------------+----------+----------------------------
+  1 |       1 | Product A    |        2 | 2026-08-08 15:06:59.886021
+  2 |       1 | Product B    |        1 | 2026-08-08 15:06:59.88746
+  3 |       2 | Product C    |        5 | 2026-08-08 15:06:59.888183
+  4 |       3 | Product D    |        3 | 2026-08-08 15:06:59.88898
+  5 |       4 | Product E    |        4 | 2026-08-08 15:06:59.88971
+(5 rows)
+
+```
+
+В течение 5 секунд [увидим изменения в метриках](http://localhost:3000/d/kafka-connect-dashboard/kafka-connect-monitoring?orgId=1&from=now-5m&to=now&timezone=browser) (см описание метрик в шаге 2).
+- Source Record Poll Total (Cumulative) = 9
+- Source Record Write Total (Cumulative) = 9
+
+так как вставили 9 записей
+
+## Шаг 4 - в логах приложения Go увидим записи вида
+
+Данные, которые получает Kafka от Debezium: 
+
+```bash
+INFO: 2026/08/07 21:59:27 ConsumerUsers: in file: main.go:117: Message:
+{
+  "before": null,
+  "after": {
+    "created_at": 1786139395635838,
+    "email": "john@example.com",
+    "id": 1,
+    "name": "John Doe"
+  },
+  "source": {
+    "connector": "postgresql",
+    "db": "customers",
+    "lsn": 26683472,
+    "name": "pg",
+    "schema": "public",
+    "sequence": "[null,\"26683472\"]",
+    "snapshot": "false",
+    "table": "users",
+    "ts_ms": 1786128595637,
+    "ts_ns": 1786128595637128000,
+    "ts_us": 1786128595637128,
+    "txId": 747,
+    "version": "3.0.0.Final",
+    "xmin": null
+  },
+  "transaction": null,
+  "op": "c",
+  "ts_ms": 1786128595933,
+  "ts_us": 1786128595933573,
+  "ts_ns": 1786128595933573878
+}
+```
