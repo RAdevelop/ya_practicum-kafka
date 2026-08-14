@@ -30,7 +30,7 @@
       "gridPos": {"x": 0, "y": 3, "w": 8, "h": 4},
       "targets": [
         {
-          "expr": "rate({__name__=~\"kafka_connect_source_task.*_source_record_poll_rate.*\"}[1m])",
+          "expr": "{__name__=~\"kafka_connect_source_task.*_source_record_poll_rate.*\"}",
           "legendFormat": "Poll Rate"
         }
       ]
@@ -41,7 +41,7 @@
       "gridPos": {"x": 8, "y": 3, "w": 8, "h": 4},
       "targets": [
         {
-          "expr": "rate({__name__=~\"kafka_connect_source_task.*_source_record_write_rate.*\"}[1m])",
+          "expr": "{__name__=~\"kafka_connect_source_task.*_source_record_write_rate.*\"}",
           "legendFormat": "Write Rate"
         }
       ]

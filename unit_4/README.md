@@ -306,7 +306,7 @@ INSERT INTO orders (user_id, product_name, quantity) VALUES (3, 'Product D', 3);
 INSERT INTO orders (user_id, product_name, quantity) VALUES (4, 'Product E', 4);
 SELECT * FROM users;
 SELECT * FROM orders;
-EOF 
+EOF
 ```
 
 Результат будет вида:

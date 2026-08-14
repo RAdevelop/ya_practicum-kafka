@@ -44,10 +44,10 @@ func NewConsumer[T any](config config.Config, logger *logger.Logger, deserialize
 				- Консьюмер начинает читать только новые сообщения, которые будут отправлены в топик после его запуска.
 		*/
 		"auto.offset.reset":        config.Consumer.AutoOffsetReset,
-		"enable.auto.commit":       config.Consumer.EnableAutoCommit, // Включает/выключает фоновую автоматическую фиксацию (commit) смещений в брокере
-		"enable.auto.offset.store": config.Consumer.EnableAutoCommit, // Включает/выключает автоматическое сохранение смещения в локальной памяти клиента
-		"fetch.min.bytes":          config.Consumer.FetchMinBytes,    // Минимум 1 KB за один запрос
-		"fetch.wait.max.ms":        config.Consumer.FetchWaitMaxMs,   // Ждём получение сообщения до FetchMaxWaitMs мс
+		"enable.auto.commit":       config.Consumer.EnableAutoCommit,      // Включает/выключает фоновую автоматическую фиксацию (commit) смещений в брокере
+		"enable.auto.offset.store": config.Consumer.EnableAutoOffsetStore, // Включает/выключает автоматическое сохранение смещения в локальной памяти клиента
+		"fetch.min.bytes":          config.Consumer.FetchMinBytes,         // Минимум 1 KB за один запрос
+		"fetch.wait.max.ms":        config.Consumer.FetchWaitMaxMs,        // Ждём получение сообщения до FetchMaxWaitMs мс
 	})
 	if err != nil {
 		return nil, err
@@ -184,10 +184,11 @@ func (c *Consumer[T]) Consume(ctx context.Context, processBatchCb func(context.C
 				}
 
 				// Коммитим оффсет всей пачки
-				// TODO только если успешно выполнили processBatchCb(...)
-				_, err = c.consumer.Commit()
-				if err != nil {
-					c.logger.Error("commit offset error: %v", err)
+				if err == nil {
+					_, err = c.consumer.Commit()
+					if err != nil {
+						c.logger.Error("commit offset error: %v", err)
+					}
 				}
 
 				// Очищаем пачку
