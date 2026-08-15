@@ -237,41 +237,41 @@ services:
     restart: unless-stopped
     ports:
       - "39094:9094"
-#  kafka-ui:
-#    image: provectuslabs/kafka-ui:v0.7.2
-#    ports:
-#      - "8080:8080"
-#    environment:
-#      KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS: "kafka-b-1:9092,kafka-b-2:9092,kafka-b-3:9092"
-#      KAFKA_CLUSTERS_0_NAME: "kafka-kraft"
-#      DYNAMIC_CONFIG_ENABLED: 'true'
-#      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: "SSL"
-#      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_LOCATION: "/etc/ssl/client-truststore.jks"
-#      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_PASSWORD: "kafka123"
-#      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_LOCATION: "/etc/ssl/client-keystore.jks"
-#      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_PASSWORD: "kafka123"
-#      KAFKA_CONTROLLER_SSL_TRUSTMANAGER_ALGORITHM: "PKIX"
-#    volumes:
-#      - ./ssl/clients:/etc/ssl
-#    networks:
-#      - kafka-network
-#    restart: unless-stopped
-#    depends_on:
-#      - kafka-c-1
-#      - kafka-c-2
-#      - kafka-c-3
-#      - kafka-b-1
-#      - kafka-b-2
-#      - kafka-b-3
-#  app:
-#      build:
-#          context: .
-#          dockerfile: docker/Dockerfile
-#      container_name: go-app
-#      hostname: go-app
-#      restart: unless-stopped
-#      networks:
-#          - kafka-network
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS: "kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093"
+      KAFKA_CLUSTERS_0_NAME: "kafka-kraft"
+      DYNAMIC_CONFIG_ENABLED: 'true'
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: "SSL"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_LOCATION: "/etc/ssl/truststore.jks"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_PASSWORD: "kafka123"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_LOCATION: "/etc/ssl/keystore.jks"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_PASSWORD: "kafka123"
+      KAFKA_CONTROLLER_SSL_TRUSTMANAGER_ALGORITHM: "PKIX"
+    volumes:
+      - ./ssl/clients/ssl:/etc/ssl
+    networks:
+      - kafka-network
+    restart: unless-stopped
+    depends_on:
+      - kafka-c-1
+      - kafka-c-2
+      - kafka-c-3
+      - kafka-b-1
+      - kafka-b-2
+      - kafka-b-3
+  app:
+      build:
+          context: .
+          dockerfile: docker/Dockerfile
+      container_name: go-app
+      hostname: go-app
+      restart: unless-stopped
+      networks:
+          - kafka-network
 
 volumes:
   kafka-c-1-data:
