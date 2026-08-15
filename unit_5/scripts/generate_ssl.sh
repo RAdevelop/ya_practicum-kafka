@@ -21,7 +21,7 @@ openssl req -new -x509 -days 3650 -sha256 \
     -subj "/C=RU/ST=Moscow/L=Moscow/O=Company/CN=KafkaCA" \
     -out ${CA_DIR}/ca.crt
 
-# Функция для создания сертификата
+# Функция для создания сертификата в PKCS12
 create_cert() {
     local NAME=$1
     local DIR=$2
@@ -72,7 +72,7 @@ EOF
         -extensions v3_req \
         -extfile ${DIR}/openssl.cnf
 
-    # Создаем PKCS12
+    # Создаем keystore в PKCS12 (без JKS конвертации!)
     openssl pkcs12 -export \
         -in ${DIR}/server.crt \
         -inkey ${DIR}/server.key \
@@ -80,21 +80,12 @@ EOF
         -name ${NAME} \
         -password pass:${PASSWORD}
 
-    # Конвертируем PKCS12 в JKS (Java Key Store)
-    keytool -importkeystore \
-        -srckeystore ${SSL_DIR}/keystore.p12 \
-        -srcstoretype PKCS12 \
-        -srcstorepass ${PASSWORD} \
-        -destkeystore ${SSL_DIR}/keystore.jks \
-        -deststoretype JKS \
-        -deststorepass ${PASSWORD}
-
-    # Создаем truststore в JKS
-    keytool -keystore ${SSL_DIR}/truststore.jks \
+    # Создаем truststore в PKCS12
+    keytool -keystore ${SSL_DIR}/truststore.p12 \
         -alias CARoot \
         -import -file ${CA_DIR}/ca.crt \
         -storepass ${PASSWORD} \
-        -storetype JKS \
+        -storetype PKCS12 \
         -noprompt
 
     # Создаем файлы с паролями
@@ -121,5 +112,13 @@ done
 # Клиентский сертификат для Kafka UI
 create_cert "kafka-ui-client" "${CLIENTS_DIR}"
 
-echo "=== SSL certificates generated successfully ==="
+# Создаем копии в корне для Kafka UI
+cp ${CLIENTS_DIR}/ssl/keystore.p12 ${CLIENTS_DIR}/keystore.p12
+cp ${CLIENTS_DIR}/ssl/truststore.p12 ${CLIENTS_DIR}/truststore.p12
+
+echo "=== SSL certificates generated successfully (PKCS12) ==="
 echo "Password: ${PASSWORD}"
+echo "Files:"
+echo "  - Controllers: ${CONTROLLERS_DIR}/kafka-c-*/ssl/keystore.p12, truststore.p12"
+echo "  - Brokers: ${BROKERS_DIR}/kafka-b-*/ssl/keystore.p12, truststore.p12"
+echo "  - Clients: ${CLIENTS_DIR}/ssl/keystore.p12, truststore.p12"

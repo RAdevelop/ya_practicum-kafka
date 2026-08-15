@@ -14,19 +14,19 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       KAFKA_PROCESS_ROLES: "controller"
       # SSL настройки
-      KAFKA_SSL_KEYSTORE_FILENAME: "ssl/keystore.jks"
-      KAFKA_SSL_KEYSTORE_TYPE: "JKS"
+      KAFKA_SSL_KEYSTORE_FILENAME: "ssl/keystore.p12"
+      KAFKA_SSL_KEYSTORE_TYPE: "PKCS12"
       KAFKA_SSL_KEYSTORE_CREDENTIALS: "creds/keystore_creds"
       KAFKA_SSL_KEY_CREDENTIALS: "creds/ssl_key_creds"
       
-      KAFKA_SSL_TRUSTSTORE_FILENAME: "ssl/truststore.jks"
-      KAFKA_SSL_TRUSTSTORE_TYPE: "JKS"
+      KAFKA_SSL_TRUSTSTORE_FILENAME: "ssl/truststore.p12"
+      KAFKA_SSL_TRUSTSTORE_TYPE: "PKCS12"
       KAFKA_SSL_TRUSTSTORE_CREDENTIALS: "creds/truststore_creds"
       
       KAFKA_CONTROLLER_SSL_CLIENT_AUTH: "none"
       KAFKA_SSL_CLIENT_AUTH: "none"
       KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "HTTPS"
-      KAFKA_SSL_VERIFY_HOSTNAME: "false"
+      KAFKA_SSL_VERIFY_HOSTNAME: "true"
       KAFKA_SSL_TRUSTMANAGER_ALGORITHM: "PKIX"
       
       KAFKA_SSL_ENABLED_PROTOCOLS: "TLSv1.3,TLSv1.2"
@@ -54,19 +54,19 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       KAFKA_PROCESS_ROLES: "controller"
       # SSL настройки
-      KAFKA_SSL_KEYSTORE_FILENAME: "ssl/keystore.jks"
-      KAFKA_SSL_KEYSTORE_TYPE: "JKS"
+      KAFKA_SSL_KEYSTORE_FILENAME: "ssl/keystore.p12"
+      KAFKA_SSL_KEYSTORE_TYPE: "PKCS12"
       KAFKA_SSL_KEYSTORE_CREDENTIALS: "creds/keystore_creds"
       KAFKA_SSL_KEY_CREDENTIALS: "creds/ssl_key_creds"
       
-      KAFKA_SSL_TRUSTSTORE_FILENAME: "ssl/truststore.jks"
-      KAFKA_SSL_TRUSTSTORE_TYPE: "JKS"
+      KAFKA_SSL_TRUSTSTORE_FILENAME: "ssl/truststore.p12"
+      KAFKA_SSL_TRUSTSTORE_TYPE: "PKCS12"
       KAFKA_SSL_TRUSTSTORE_CREDENTIALS: "creds/truststore_creds"
       
       KAFKA_CONTROLLER_SSL_CLIENT_AUTH: "none"
       KAFKA_SSL_CLIENT_AUTH: "none"
       KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "HTTPS"
-      KAFKA_SSL_VERIFY_HOSTNAME: "false"
+      KAFKA_SSL_VERIFY_HOSTNAME: "true"
       KAFKA_SSL_TRUSTMANAGER_ALGORITHM: "PKIX"
       
       KAFKA_SSL_ENABLED_PROTOCOLS: "TLSv1.3,TLSv1.2"
@@ -94,19 +94,19 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       KAFKA_PROCESS_ROLES: "controller"
       # SSL настройки
-      KAFKA_SSL_KEYSTORE_FILENAME: "ssl/keystore.jks"
-      KAFKA_SSL_KEYSTORE_TYPE: "JKS"
+      KAFKA_SSL_KEYSTORE_FILENAME: "ssl/keystore.p12"
+      KAFKA_SSL_KEYSTORE_TYPE: "PKCS12"
       KAFKA_SSL_KEYSTORE_CREDENTIALS: "creds/keystore_creds"
       KAFKA_SSL_KEY_CREDENTIALS: "creds/ssl_key_creds"
       
-      KAFKA_SSL_TRUSTSTORE_FILENAME: "ssl/truststore.jks"
-      KAFKA_SSL_TRUSTSTORE_TYPE: "JKS"
+      KAFKA_SSL_TRUSTSTORE_FILENAME: "ssl/truststore.p12"
+      KAFKA_SSL_TRUSTSTORE_TYPE: "PKCS12"
       KAFKA_SSL_TRUSTSTORE_CREDENTIALS: "creds/truststore_creds"
       
       KAFKA_CONTROLLER_SSL_CLIENT_AUTH: "none"
       KAFKA_SSL_CLIENT_AUTH: "none"
       KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "HTTPS"
-      KAFKA_SSL_VERIFY_HOSTNAME: "false"
+      KAFKA_SSL_VERIFY_HOSTNAME: "true"
       KAFKA_SSL_TRUSTMANAGER_ALGORITHM: "PKIX"
       
       KAFKA_SSL_ENABLED_PROTOCOLS: "TLSv1.3,TLSv1.2"
@@ -137,13 +137,13 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       # SSL настройки
       # --- ЭТО ОБЯЗАТЕЛЬНО, чтобы не было ошибки "variable not set" ---
-      KAFKA_SSL_KEYSTORE_FILENAME: "ssl/keystore.jks"
-      KAFKA_SSL_KEYSTORE_TYPE: "JKS"
+      KAFKA_SSL_KEYSTORE_FILENAME: "ssl/keystore.p12"
+      KAFKA_SSL_KEYSTORE_TYPE: "PKCS12"
       KAFKA_SSL_KEY_CREDENTIALS: "creds/keystore_creds"
       KAFKA_SSL_KEYSTORE_CREDENTIALS: "creds/keystore_creds"
       
-      KAFKA_SSL_TRUSTSTORE_FILENAME: "ssl/truststore.jks"
-      KAFKA_SSL_TRUSTSTORE_TYPE: "JKS"
+      KAFKA_SSL_TRUSTSTORE_FILENAME: "ssl/truststore.p12"
+      KAFKA_SSL_TRUSTSTORE_TYPE: "PKCS12"
       KAFKA_SSL_TRUSTSTORE_CREDENTIALS: "creds/truststore_creds"
 
       KAFKA_SSL_ENABLED_PROTOCOLS: "TLSv1.3,TLSv1.2"
@@ -177,13 +177,13 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       # SSL настройки
       # --- ЭТО ОБЯЗАТЕЛЬНО, чтобы не было ошибки "variable not set" ---
-      KAFKA_SSL_KEYSTORE_FILENAME: "ssl/keystore.jks"
-      KAFKA_SSL_KEYSTORE_TYPE: "JKS"
+      KAFKA_SSL_KEYSTORE_FILENAME: "ssl/keystore.p12"
+      KAFKA_SSL_KEYSTORE_TYPE: "PKCS12"
       KAFKA_SSL_KEY_CREDENTIALS: "creds/keystore_creds"
       KAFKA_SSL_KEYSTORE_CREDENTIALS: "creds/keystore_creds"
       
-      KAFKA_SSL_TRUSTSTORE_FILENAME: "ssl/truststore.jks"
-      KAFKA_SSL_TRUSTSTORE_TYPE: "JKS"
+      KAFKA_SSL_TRUSTSTORE_FILENAME: "ssl/truststore.p12"
+      KAFKA_SSL_TRUSTSTORE_TYPE: "PKCS12"
       KAFKA_SSL_TRUSTSTORE_CREDENTIALS: "creds/truststore_creds"
       KAFKA_SSL_ENABLED_PROTOCOLS: "TLSv1.3,TLSv1.2"
       KAFKA_SSL_PROTOCOL: "TLSv1.3"
@@ -216,13 +216,13 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       # SSL настройки
       # --- ЭТО ОБЯЗАТЕЛЬНО, чтобы не было ошибки "variable not set" ---
-      KAFKA_SSL_KEYSTORE_FILENAME: "ssl/keystore.jks"
-      KAFKA_SSL_KEYSTORE_TYPE: "JKS"
+      KAFKA_SSL_KEYSTORE_FILENAME: "ssl/keystore.p12"
+      KAFKA_SSL_KEYSTORE_TYPE: "PKCS12"
       KAFKA_SSL_KEY_CREDENTIALS: "creds/keystore_creds"
       KAFKA_SSL_KEYSTORE_CREDENTIALS: "creds/keystore_creds"
       
-      KAFKA_SSL_TRUSTSTORE_FILENAME: "ssl/truststore.jks"
-      KAFKA_SSL_TRUSTSTORE_TYPE: "JKS"
+      KAFKA_SSL_TRUSTSTORE_FILENAME: "ssl/truststore.p12"
+      KAFKA_SSL_TRUSTSTORE_TYPE: "PKCS12"
       KAFKA_SSL_TRUSTSTORE_CREDENTIALS: "creds/truststore_creds"
       KAFKA_SSL_ENABLED_PROTOCOLS: "TLSv1.3,TLSv1.2"
       KAFKA_SSL_PROTOCOL: "TLSv1.3"
@@ -245,10 +245,11 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS: "kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093"
       KAFKA_CLUSTERS_0_NAME: "kafka-kraft"
       DYNAMIC_CONFIG_ENABLED: 'true'
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "HTTPS"
       KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: "SSL"
-      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_LOCATION: "/etc/ssl/truststore.jks"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_LOCATION: "/etc/ssl/truststore.p12"
       KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_PASSWORD: "kafka123"
-      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_LOCATION: "/etc/ssl/keystore.jks"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_LOCATION: "/etc/ssl/keystore.p12"
       KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_PASSWORD: "kafka123"
       KAFKA_CONTROLLER_SSL_TRUSTMANAGER_ALGORITHM: "PKIX"
     volumes:
