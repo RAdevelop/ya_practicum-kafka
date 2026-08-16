@@ -20,12 +20,12 @@ x-kafka_broker:
     KAFKA_PROCESS_ROLES: "broker"
     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
     KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-    KAFKA_SSL_KEYSTORE_FILENAME: kafka.kafka-b.keystore.pkcs12
-    KAFKA_SSL_KEYSTORE_CREDENTIALS: kafka-b_keystore_creds
-    KAFKA_SSL_KEY_CREDENTIALS: kafka-b_sslkey_creds
-    KAFKA_SSL_TRUSTSTORE_FILENAME: kafka.kafka-b.truststore.jks
-    KAFKA_SSL_TRUSTSTORE_CREDENTIALS: kafka-b_truststore_creds
-    KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: https
+    KAFKA_SSL_KEYSTORE_FILENAME: "keystore.pkcs12"
+    KAFKA_SSL_KEYSTORE_CREDENTIALS: "keystore_creds"
+    KAFKA_SSL_KEY_CREDENTIALS: "sslkey_creds"
+    KAFKA_SSL_TRUSTSTORE_FILENAME: "truststore.jks"
+    KAFKA_SSL_TRUSTSTORE_CREDENTIALS: "truststore_creds"
+    KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
 
 services:
   kafka-c-1:
@@ -53,7 +53,7 @@ services:
       KAFKA_NODE_ID: 4
     volumes:
       - kafka-b-1-data:/var/lib/kafka/data
-      - ./ca/kafka-b-1-creds:/etc/kafka/secrets
+      - ./ca/kafka-b-1/creds:/etc/kafka/secrets
     networks:
       - kafka-network
     restart: unless-stopped
@@ -70,16 +70,16 @@ services:
       DYNAMIC_CONFIG_ENABLED: 'true'
       
       KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: "SSL"
-      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/kafka.kafka-b.truststore.jks"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
       KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_PASSWORD: "kafka123"
       KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_TYPE: "JKS"
-      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/kafka.kafka-b.keystore.pkcs12"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
       KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_PASSWORD: "kafka123"
       KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_TYPE: "PKCS12"
       KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEY_PASSWORD: "kafka123"
       KAFKA_CLUSTERS_0_PROPERTIES_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
     volumes:
-      - ./ca/kafka-b-1-creds:/etc/kafka/secrets
+      - ./ca/kafka-ui/creds:/etc/kafka/secrets
     networks:
       - kafka-network
     restart: unless-stopped
