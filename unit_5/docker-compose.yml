@@ -14,7 +14,7 @@ x-kafka_broker:
     CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
     KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-c-1:9093"
     KAFKA_LISTENERS: "PLAINTEXT://:9092,EXTERNAL://:9094,SSL://:9093"
-    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT,SSL:SSL"
+    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,EXTERNAL:SSL,PLAINTEXT:PLAINTEXT,SSL:SSL"
     KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
     KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
     KAFKA_PROCESS_ROLES: "broker"
@@ -26,6 +26,7 @@ x-kafka_broker:
     KAFKA_SSL_TRUSTSTORE_FILENAME: "truststore.jks"
     KAFKA_SSL_TRUSTSTORE_CREDENTIALS: "truststore_creds"
     KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
+    KAFKA_SSL_CLIENT_AUTH: "required"
 
 services:
   kafka-c-1:
@@ -36,9 +37,10 @@ services:
     environment:
       <<: *kafka_controller-env
       KAFKA_NODE_ID: 1
+      KAFKA_ADVERTISED_LISTENERS: "CONTROLLER://kafka-c-1:9093"
     volumes:
       - kafka-c-1-data:/var/lib/kafka/data
-      - kafka-c-1-secrets:/etc/kafka/secrets
+      - ./ca/kafka-c-1/creds:/etc/kafka/secrets
     networks:
       - kafka-network
     restart: unless-stopped
@@ -85,10 +87,10 @@ services:
     restart: unless-stopped
     depends_on:
       - kafka-c-1
+      - kafka-b-1
 
 volumes:
   kafka-c-1-data:
-  kafka-c-1-secrets:
   kafka-b-1-data:
 
 networks:

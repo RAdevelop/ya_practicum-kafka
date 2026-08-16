@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
-clear
 
 CA_PASS="kafka123"
 
@@ -150,6 +149,11 @@ EOF
   echo ${CA_PASS} > "${CA_DIR}/${NAME}/creds/truststore_creds"
 
 }
+
+# контроллеры:
+for i in 1; do
+  create_cert "kafka-c-${i}"
+done
 
 # брокеры:
 for i in 1; do
