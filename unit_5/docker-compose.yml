@@ -136,6 +136,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       # SSL настройки
+      KAFKA_SSL_CLIENT_AUTH: "required"
       # --- ЭТО ОБЯЗАТЕЛЬНО, чтобы не было ошибки "variable not set" ---
       KAFKA_SSL_KEYSTORE_FILENAME: "ssl/keystore.p12"
       KAFKA_SSL_KEYSTORE_TYPE: "PKCS12"
@@ -151,6 +152,13 @@ services:
       KAFKA_SSL_CIPHER_SUITES: "TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
       KAFKA_SSL_KEYMANAGER_ALGORITHM: "SunX509"
       KAFKA_OPTS: "-Djdk.tls.client.cipherSuites=TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 -Djdk.tls.server.cipherSuites=TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+      
+      KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_SUPER_USERS: "User:admin"
+      KAFKA_METADATA_AUTHORIZER_CLUSTER_ROLE: "clusterAdmin"
+      # Добавляем правило маппинга
+      KAFKA_SSL_PRINCIPAL_MAPPING_RULES: "RULE:^CN=(.*?),.*$/$1/,DEFAULT"
     volumes:
       - kafka-b-1-data:/var/lib/kafka/data
       - ./ssl/brokers/kafka-b-1:/etc/kafka/secrets
@@ -176,6 +184,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       # SSL настройки
+      KAFKA_SSL_CLIENT_AUTH: "required"
       # --- ЭТО ОБЯЗАТЕЛЬНО, чтобы не было ошибки "variable not set" ---
       KAFKA_SSL_KEYSTORE_FILENAME: "ssl/keystore.p12"
       KAFKA_SSL_KEYSTORE_TYPE: "PKCS12"
@@ -190,6 +199,13 @@ services:
       KAFKA_SSL_CIPHER_SUITES: "TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
       KAFKA_SSL_KEYMANAGER_ALGORITHM: "SunX509"
       KAFKA_OPTS: "-Djdk.tls.client.cipherSuites=TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 -Djdk.tls.server.cipherSuites=TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+      
+      KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_SUPER_USERS: "User:admin"
+      KAFKA_METADATA_AUTHORIZER_CLUSTER_ROLE: "clusterAdmin"
+        # Добавляем правило маппинга
+      KAFKA_SSL_PRINCIPAL_MAPPING_RULES: "RULE:^CN=(.*?),.*$/$1/,DEFAULT"
     volumes:
       - kafka-b-2-data:/var/lib/kafka/data
       - ./ssl/brokers/kafka-b-2:/etc/kafka/secrets
@@ -215,6 +231,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       # SSL настройки
+      KAFKA_SSL_CLIENT_AUTH: "required"
       # --- ЭТО ОБЯЗАТЕЛЬНО, чтобы не было ошибки "variable not set" ---
       KAFKA_SSL_KEYSTORE_FILENAME: "ssl/keystore.p12"
       KAFKA_SSL_KEYSTORE_TYPE: "PKCS12"
@@ -229,6 +246,13 @@ services:
       KAFKA_SSL_CIPHER_SUITES: "TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
       KAFKA_SSL_KEYMANAGER_ALGORITHM: "SunX509"
       KAFKA_OPTS: "-Djdk.tls.client.cipherSuites=TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 -Djdk.tls.server.cipherSuites=TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+      
+      KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_SUPER_USERS: "User:admin"
+      KAFKA_METADATA_AUTHORIZER_CLUSTER_ROLE: "clusterAdmin"
+      # Добавляем правило маппинга
+      KAFKA_SSL_PRINCIPAL_MAPPING_RULES: "RULE:^CN=(.*?),.*$/$1/,DEFAULT"
     volumes:
       - kafka-b-3-data:/var/lib/kafka/data
       - ./ssl/brokers/kafka-b-3:/etc/kafka/secrets

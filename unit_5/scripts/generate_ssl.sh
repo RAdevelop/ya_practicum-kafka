@@ -9,6 +9,7 @@ CA_DIR="${SSL_DIR}/ca"
 CONTROLLERS_DIR="${SSL_DIR}/controllers"
 BROKERS_DIR="${SSL_DIR}/brokers"
 CLIENTS_DIR="${SSL_DIR}/clients"
+ADMIN_USER="${SSL_DIR}/users/admin"
 
 mkdir -p ${CA_DIR} ${CONTROLLERS_DIR} ${BROKERS_DIR} ${CLIENTS_DIR}
 
@@ -111,6 +112,25 @@ done
 
 # Клиентский сертификат для Kafka UI
 create_cert "kafka-ui-client" "${CLIENTS_DIR}"
+
+# admin
+create_cert "admin" "${ADMIN_USER}"
+cat > ${ADMIN_USER}/creds/admin-client.properties << 'EOF'
+security.protocol=SSL
+ssl.truststore.location=/etc/kafka/secrets/users/admin/ssl/truststore.p12
+ssl.truststore.password=kafka123
+ssl.truststore.type=PKCS12
+ssl.keystore.location=/etc/kafka/secrets/users/admin/ssl/keystore.p12
+ssl.keystore.password=kafka123
+ssl.keystore.type=PKCS12
+ssl.key.password=kafka123
+ssl.endpoint.identification.algorithm=HTTPS
+EOF
+
+for i in 1 2 3; do
+    mkdir -p "${BROKERS_DIR}/kafka-b-${i}/users"
+    cp -r "${ADMIN_USER}" "${BROKERS_DIR}/kafka-b-${i}/users"
+done
 
 # Создаем копии в корне для Kafka UI
 cp ${CLIENTS_DIR}/ssl/keystore.p12 ${CLIENTS_DIR}/keystore.p12

@@ -8,12 +8,12 @@
 - получен список коннекторов
 
 ```bash
-echo "ssl create\n" \
+clear \
+&& echo "ssl create\n" \
 && sh ./scripts/generate_ssl.sh \
-&& sh ./scripts/admin_client.sh \
-&& docker-compose up -d \
-&& sleep 20 \
-&& docker-compose stop
+&& docker-compose down \
+&& docker-compose down -v \
+&& docker-compose up -d
 ```
 
 ## Пересобрать, если требуется
