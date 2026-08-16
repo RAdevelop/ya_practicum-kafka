@@ -10,7 +10,7 @@
 ```bash
 clear \
 && echo "ssl create\n" \
-&& sh ./scripts/generate_ssl.sh \
+&& sh ./scripts/certs.sh \
 && docker-compose down \
 && docker-compose down -v \
 && docker-compose up -d
