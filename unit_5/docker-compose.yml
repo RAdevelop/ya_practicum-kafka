@@ -8,7 +8,9 @@ x-kafka_controller:
     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT"
     KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
     KAFKA_PROCESS_ROLES: "controller"
-
+#    KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
+#    KAFKA_SUPER_USERS: "User:admin;User:kafka-b-1"
+    
 x-kafka_broker:
   env: &kafka-broker-env
     CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
@@ -40,7 +42,7 @@ services:
       KAFKA_ADVERTISED_LISTENERS: "CONTROLLER://kafka-c-1:9093"
     volumes:
       - kafka-c-1-data:/var/lib/kafka/data
-      - ./ca/kafka-c-1/creds:/etc/kafka/secrets
+      - ./mount_dir/kafka-c-1/creds:/etc/kafka/secrets
     networks:
       - kafka-network
     restart: unless-stopped
@@ -55,7 +57,7 @@ services:
       KAFKA_NODE_ID: 4
     volumes:
       - kafka-b-1-data:/var/lib/kafka/data
-      - ./ca/kafka-b-1/creds:/etc/kafka/secrets
+      - ./mount_dir/kafka-b-1/creds:/etc/kafka/secrets
     networks:
       - kafka-network
     restart: unless-stopped
@@ -81,7 +83,7 @@ services:
       KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEY_PASSWORD: "kafka123"
       KAFKA_CLUSTERS_0_PROPERTIES_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
     volumes:
-      - ./ca/kafka-ui/creds:/etc/kafka/secrets
+      - ./mount_dir/kafka-ui/creds:/etc/kafka/secrets
     networks:
       - kafka-network
     restart: unless-stopped

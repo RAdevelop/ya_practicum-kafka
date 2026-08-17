@@ -45,6 +45,6 @@ status: ## Проверить статус контейнеров
 	@$(DOCKER_COMPOSE) ps
 
 .PHONY: rebuild
-rebuild: clean ssl up ## Пересобрать с очисткой
+rebuild: down clean ssl up ## Пересобрать с очисткой
 
 .DEFAULT_GOAL := help
