@@ -29,10 +29,9 @@ x-kafka_controller:
     KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
     KAFKA_SSL_CLIENT_AUTH: "required"
     
-    
     # Включаем авторизацию
     KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
-    KAFKA_SUPER_USERS: "User:CN=admin,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-ui,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-2,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-3,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-2,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-3,L=Moscow,OU=Practice,O=Yandex,C=RU;"
+    KAFKA_SUPER_USERS: "User:CN=admin,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-2,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-3,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-2,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-3,L=Moscow,OU=Practice,O=Yandex,C=RU;"
     
 x-kafka_broker:
   env: &kafka-broker-env
@@ -69,7 +68,7 @@ x-kafka_broker:
     
     # Включаем авторизацию
     KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
-    KAFKA_SUPER_USERS: "User:CN=admin,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-ui,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-2,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-3,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-2,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-3,L=Moscow,OU=Practice,O=Yandex,C=RU;"
+    KAFKA_SUPER_USERS: "User:CN=admin,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-2,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-3,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-2,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-3,L=Moscow,OU=Practice,O=Yandex,C=RU;"
 
 services:
   kafka-c-1:
