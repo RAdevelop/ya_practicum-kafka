@@ -3,7 +3,10 @@ x-kafka_controller:
     [ "/bin/bash", "-c", "unset KAFKA_ADVERTISED_LISTENERS; exec /etc/confluent/docker/run" ]
   env: &kafka_controller-env
     CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
-    KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-c-1:9093"
+    
+    KAFKA_HEAP_OPTS: "-Xms512m -Xmx1g"
+    
+    KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-c-1:9093,2@kafka-c-2:9093,3@kafka-c-3:9093"
     KAFKA_LISTENERS: "CONTROLLER://:9093"
     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:SSL"
     KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
@@ -26,18 +29,22 @@ x-kafka_controller:
     KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
     KAFKA_SSL_CLIENT_AUTH: "required"
     
-#    KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
-#    KAFKA_SUPER_USERS: "User:admin;User:kafka-b-1"
+    
+    # Включаем авторизацию
+    KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
+    KAFKA_SUPER_USERS: "User:CN=admin,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-ui,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-2,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-3,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-2,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-3,L=Moscow,OU=Practice,O=Yandex,C=RU;"
     
 x-kafka_broker:
   env: &kafka-broker-env
     CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
-    KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-c-1:9093"
+    KAFKA_HEAP_OPTS: "-Xms512m -Xmx1g"
+    
+    KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-c-1:9093,2@kafka-c-2:9093,3@kafka-c-3:9093"
     KAFKA_LISTENERS: "EXTERNAL://:9094,SSL://:9093"
     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "EXTERNAL:SSL,SSL:SSL,CONTROLLER:SSL"
     KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
     KAFKA_PROCESS_ROLES: "broker"
-    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
     KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
 #    KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
     
@@ -59,6 +66,10 @@ x-kafka_broker:
     KAFKA_SSL_KEY_CREDENTIALS: "sslkey_creds"
     KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
     KAFKA_SSL_CLIENT_AUTH: "required"
+    
+    # Включаем авторизацию
+    KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
+    KAFKA_SUPER_USERS: "User:CN=admin,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-ui,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-2,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-3,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-2,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-3,L=Moscow,OU=Practice,O=Yandex,C=RU;"
 
 services:
   kafka-c-1:
@@ -68,10 +79,41 @@ services:
     hostname: kafka-c-1
     environment:
       <<: *kafka_controller-env
+      KAFKA_ADVERTISED_LISTENERS: "SSL://kafka-c-1:9093"
       KAFKA_NODE_ID: 1
     volumes:
       - kafka-c-1-data:/var/lib/kafka/data
       - ./mount_dir/kafka-c-1/creds:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    restart: unless-stopped
+  kafka-c-2:
+    image: confluentinc/cp-kafka:8.3.0
+    entrypoint: *kafka-controller-entrypoint
+    container_name: kafka-c-2
+    hostname: kafka-c-2
+    environment:
+      <<: *kafka_controller-env
+      KAFKA_ADVERTISED_LISTENERS: "SSL://kafka-c-2:9093"
+      KAFKA_NODE_ID: 2
+    volumes:
+      - kafka-c-2-data:/var/lib/kafka/data
+      - ./mount_dir/kafka-c-2/creds:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    restart: unless-stopped
+  kafka-c-3:
+    image: confluentinc/cp-kafka:8.3.0
+    entrypoint: *kafka-controller-entrypoint
+    container_name: kafka-c-3
+    hostname: kafka-c-3
+    environment:
+      <<: *kafka_controller-env
+      KAFKA_ADVERTISED_LISTENERS: "SSL://kafka-c-3:9093"
+      KAFKA_NODE_ID: 3
+    volumes:
+      - kafka-c-3-data:/var/lib/kafka/data
+      - ./mount_dir/kafka-c-3/creds:/etc/kafka/secrets
     networks:
       - kafka-network
     restart: unless-stopped
@@ -93,12 +135,46 @@ services:
     ports:
       - "19094:9094"
 
+  kafka-b-2:
+    image: confluentinc/cp-kafka:8.3.0
+    container_name: kafka-b-2
+    hostname: kafka-b-2
+    environment:
+      <<: *kafka-broker-env
+      KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://127.0.0.1:29094,SSL://kafka-b-2:9093"
+      KAFKA_NODE_ID: 5
+    volumes:
+      - kafka-b-2-data:/var/lib/kafka/data
+      - ./mount_dir/kafka-b-2/creds:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    restart: unless-stopped
+    ports:
+      - "29094:9094"
+
+  kafka-b-3:
+    image: confluentinc/cp-kafka:8.3.0
+    container_name: kafka-b-3
+    hostname: kafka-b-3
+    environment:
+      <<: *kafka-broker-env
+      KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://127.0.0.1:39094,SSL://kafka-b-3:9093"
+      KAFKA_NODE_ID: 6
+    volumes:
+      - kafka-b-3-data:/var/lib/kafka/data
+      - ./mount_dir/kafka-b-3/creds:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    restart: unless-stopped
+    ports:
+      - "39094:9094"
+
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
     ports:
       - "8080:8080"
     environment:
-      KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS: "kafka-b-1:9093"
+      KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS: "kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093"
       KAFKA_CLUSTERS_0_NAME: "kafka-kraft"
       DYNAMIC_CONFIG_ENABLED: 'true'
       
@@ -118,11 +194,19 @@ services:
     restart: unless-stopped
     depends_on:
       - kafka-c-1
+      - kafka-c-2
+      - kafka-c-3
       - kafka-b-1
+      - kafka-b-2
+      - kafka-b-3
 
 volumes:
   kafka-c-1-data:
+  kafka-c-2-data:
+  kafka-c-3-data:
   kafka-b-1-data:
+  kafka-b-2-data:
+  kafka-b-3-data:
 
 networks:
   kafka-network:

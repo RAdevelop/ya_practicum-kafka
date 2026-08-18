@@ -168,7 +168,7 @@ EOF
 
 
 # контроллеры:
-for i in 1; do
+for i in 1 2 3; do
   create_cert "kafka-c-${i}"
 
   mkdir -p "${TMP_DIR}/kafka-c-${i}/creds/admin"
@@ -177,7 +177,7 @@ done
 
 
 # брокеры:
-for i in 1; do
+for i in 1 2 3; do
   create_cert "kafka-b-${i}"
 
   mkdir -p "${TMP_DIR}/kafka-b-${i}/creds/admin"
