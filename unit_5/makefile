@@ -1,5 +1,8 @@
 # Makefile для управления Kafka кластером
 
+#ENV
+export CA_PASS := kafka123
+
 # Переменные
 DOCKER_COMPOSE = docker-compose
 SSL_SCRIPT = ./scripts/certs.sh

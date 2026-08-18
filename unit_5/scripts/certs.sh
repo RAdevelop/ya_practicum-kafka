@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CA_PASS="kafka123"
+# Установку ${CA_PASS} см в makefile
 
 MOUNT_DIR="./mount_dir"
 TMP_DIR="./tmp_dir"
