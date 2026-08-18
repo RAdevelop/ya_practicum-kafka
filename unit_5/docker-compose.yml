@@ -5,9 +5,27 @@ x-kafka_controller:
     CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
     KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-c-1:9093"
     KAFKA_LISTENERS: "CONTROLLER://:9093"
-    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT"
+    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:SSL"
     KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
     KAFKA_PROCESS_ROLES: "controller"
+    
+    KAFKA_SSL_TRUSTSTORE_TYPE: "JKS"
+    KAFKA_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+    KAFKA_SSL_TRUSTSTORE_PASSWORD: "kafka123"
+    KAFKA_SSL_TRUSTSTORE_FILENAME: "truststore.jks"
+    KAFKA_SSL_TRUSTSTORE_CREDENTIALS: "truststore_creds"
+    
+    KAFKA_SSL_KEYSTORE_TYPE: "PKCS12"
+    KAFKA_SSL_KEYSTORE_FILENAME: "keystore.pkcs12"
+    KAFKA_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+    KAFKA_SSL_KEYSTORE_PASSWORD: "kafka123"
+    KAFKA_SSL_KEYSTORE_CREDENTIALS: "keystore_creds"
+    
+    KAFKA_SSL_KEY_PASSWORD: "kafka123"
+    KAFKA_SSL_KEY_CREDENTIALS: "sslkey_creds"
+    KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
+    KAFKA_SSL_CLIENT_AUTH: "required"
+    
 #    KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
 #    KAFKA_SUPER_USERS: "User:admin;User:kafka-b-1"
     
@@ -15,18 +33,30 @@ x-kafka_broker:
   env: &kafka-broker-env
     CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
     KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-c-1:9093"
-    KAFKA_LISTENERS: "PLAINTEXT://:9092,EXTERNAL://:9094,SSL://:9093"
-    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,EXTERNAL:SSL,PLAINTEXT:PLAINTEXT,SSL:SSL"
-    KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+    KAFKA_LISTENERS: "EXTERNAL://:9094,SSL://:9093"
+    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "EXTERNAL:SSL,SSL:SSL,CONTROLLER:SSL"
     KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
     KAFKA_PROCESS_ROLES: "broker"
     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
     KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-    KAFKA_SSL_KEYSTORE_FILENAME: "keystore.pkcs12"
-    KAFKA_SSL_KEYSTORE_CREDENTIALS: "keystore_creds"
-    KAFKA_SSL_KEY_CREDENTIALS: "sslkey_creds"
+#    KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+    
+    KAFKA_SECURITY_INTER_BROKER_PROTOCOL: "SSL"
+    
+    KAFKA_SSL_TRUSTSTORE_TYPE: "JKS"
+    KAFKA_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+    KAFKA_SSL_TRUSTSTORE_PASSWORD: "kafka123"
     KAFKA_SSL_TRUSTSTORE_FILENAME: "truststore.jks"
     KAFKA_SSL_TRUSTSTORE_CREDENTIALS: "truststore_creds"
+    
+    KAFKA_SSL_KEYSTORE_TYPE: "PKCS12"
+    KAFKA_SSL_KEYSTORE_FILENAME: "keystore.pkcs12"
+    KAFKA_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+    KAFKA_SSL_KEYSTORE_PASSWORD: "kafka123"
+    KAFKA_SSL_KEYSTORE_CREDENTIALS: "keystore_creds"
+    
+    KAFKA_SSL_KEY_PASSWORD: "kafka123"
+    KAFKA_SSL_KEY_CREDENTIALS: "sslkey_creds"
     KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
     KAFKA_SSL_CLIENT_AUTH: "required"
 
@@ -39,7 +69,6 @@ services:
     environment:
       <<: *kafka_controller-env
       KAFKA_NODE_ID: 1
-      KAFKA_ADVERTISED_LISTENERS: "CONTROLLER://kafka-c-1:9093"
     volumes:
       - kafka-c-1-data:/var/lib/kafka/data
       - ./mount_dir/kafka-c-1/creds:/etc/kafka/secrets
@@ -53,7 +82,7 @@ services:
     hostname: kafka-b-1
     environment:
       <<: *kafka-broker-env
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-b-1:9092,EXTERNAL://127.0.0.1:19094,SSL://kafka-b-1:9093"
+      KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://127.0.0.1:19094,SSL://kafka-b-1:9093"
       KAFKA_NODE_ID: 4
     volumes:
       - kafka-b-1-data:/var/lib/kafka/data
