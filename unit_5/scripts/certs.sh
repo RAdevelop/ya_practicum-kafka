@@ -166,27 +166,64 @@ ssl.key.password=${CA_PASS}
 ssl.endpoint.identification.algorithm=https
 EOF
 
+# producer
+create_cert "producer"
+cat > "${TMP_DIR}/producer/creds/producer-client.properties" << EOF
+security.protocol=SSL
+ssl.truststore.location=/etc/kafka/secrets/producer/truststore.jks
+ssl.truststore.password=${CA_PASS}
+ssl.truststore.type=JKS
+ssl.keystore.location=/etc/kafka/secrets/producer/keystore.pkcs12
+ssl.keystore.password=${CA_PASS}
+ssl.keystore.type=PKCS12
+ssl.key.password=${CA_PASS}
+ssl.endpoint.identification.algorithm=https
+EOF
 
-# контроллеры:
+# consumer
+create_cert "consumer"
+cat > "${TMP_DIR}/consumer/creds/consumer-client.properties" << EOF
+security.protocol=SSL
+ssl.truststore.location=/etc/kafka/secrets/consumer/truststore.jks
+ssl.truststore.password=${CA_PASS}
+ssl.truststore.type=JKS
+ssl.keystore.location=/etc/kafka/secrets/consumer/keystore.pkcs12
+ssl.keystore.password=${CA_PASS}
+ssl.keystore.type=PKCS12
+ssl.key.password=${CA_PASS}
+ssl.endpoint.identification.algorithm=https
+EOF
+
+
 for i in 1 2 3; do
+
+  ##### контроллеры
   create_cert "kafka-c-${i}"
 
   mkdir -p "${TMP_DIR}/kafka-c-${i}/creds/admin"
   cp -r "${TMP_DIR}/admin/creds/" "${TMP_DIR}/kafka-c-${i}/creds/admin/"
-done
 
+  mkdir -p "${TMP_DIR}/kafka-c-${i}/creds/producer"
+  cp -r "${TMP_DIR}/producer/creds/" "${TMP_DIR}/kafka-c-${i}/creds/producer/"
 
-# брокеры:
-for i in 1 2 3; do
+  mkdir -p "${TMP_DIR}/kafka-c-${i}/creds/consumer"
+  cp -r "${TMP_DIR}/consumer/creds/" "${TMP_DIR}/kafka-c-${i}/creds/consumer/"
+
+  ##### брокеры
   create_cert "kafka-b-${i}"
-
   mkdir -p "${TMP_DIR}/kafka-b-${i}/creds/admin"
   cp -r "${TMP_DIR}/admin/creds/" "${TMP_DIR}/kafka-b-${i}/creds/admin/"
+
+  mkdir -p "${TMP_DIR}/kafka-b-${i}/creds/producer"
+  cp -r "${TMP_DIR}/producer/creds/" "${TMP_DIR}/kafka-b-${i}/creds/producer/"
+
+  mkdir -p "${TMP_DIR}/kafka-b-${i}/creds/consumer"
+  cp -r "${TMP_DIR}/consumer/creds/" "${TMP_DIR}/kafka-b-${i}/creds/consumer/"
 done
 
 # kafka-ui
 create_cert "kafka-ui"
 
-
+rm -rf ${MOUNT_DIR}//*
 cp -r ${TMP_DIR}/ ${MOUNT_DIR}/
 rm -rf ${TMP_DIR}/

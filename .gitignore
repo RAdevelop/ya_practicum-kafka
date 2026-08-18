@@ -2,3 +2,5 @@
 lesson
 .DS_Store
 vendor/
+unit_5/mount_dir
+unit_5/tmp_dir

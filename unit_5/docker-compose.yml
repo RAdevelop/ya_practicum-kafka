@@ -197,6 +197,22 @@ services:
       - kafka-b-1
       - kafka-b-2
       - kafka-b-3
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: go-app
+    hostname: go-app
+    restart: unless-stopped
+    depends_on:
+      - kafka-c-1
+      - kafka-c-2
+      - kafka-c-3
+      - kafka-b-1
+      - kafka-b-2
+      - kafka-b-3
+    networks:
+      - kafka-network
 
 volumes:
   kafka-c-1-data:
