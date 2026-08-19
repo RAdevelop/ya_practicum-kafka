@@ -52,6 +52,7 @@ clean: ## Остановить кластер и удалить данные (vo
 .PHONY: up
 up: ## Запустить кластер
 	@echo "$(GREEN)=== Starting cluster ===$(NC)"
+	@$(DOCKER_COMPOSE) build
 	@$(DOCKER_COMPOSE) up -d
 	@echo "$(GREEN)✅ Cluster started$(NC)"
 	@make status

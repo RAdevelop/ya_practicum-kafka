@@ -3,8 +3,8 @@ package producer
 import (
 	"fmt"
 
-	"github.com/RAdevelop/ya_practicum-kafka/unit_1/go-app/internal/config"
-	"github.com/RAdevelop/ya_practicum-kafka/unit_1/go-app/internal/logger"
+	"github.com/RAdevelop/ya_practicum-kafka/unit_5/go-app/internal/config"
+	"github.com/RAdevelop/ya_practicum-kafka/unit_5/go-app/internal/logger"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 )
 
@@ -16,7 +16,7 @@ type Producer[T any] struct {
 	serialize func(T any) ([]byte, error)
 }
 
-// NewProducer - конструтор для продюсера
+// NewProducer - конструктор для продюсера
 func NewProducer[T any](config config.Config, logger *logger.Logger, serializer func(T any) ([]byte, error)) (*Producer[T], error) {
 
 	producer, err := kafka.NewProducer(&kafka.ConfigMap{

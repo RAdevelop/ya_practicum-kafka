@@ -145,6 +145,12 @@ EOF
       -storepass ${CA_PASS} \
       -noprompt
 
+  keytool -exportcert -alias ca -keystore "${DIR_CREDS}/truststore.jks" -storepass ${CA_PASS} -rfc -file "${DIR_CREDS}/truststore.pem"
+
+  openssl pkcs12 -in "${DIR_CREDS}/keystore.pkcs12" -out "${DIR_CREDS}/keystore.pem" -nokeys -passin pass:${CA_PASS} -passout pass:${CA_PASS}
+
+  openssl pkcs12 -in "${DIR_CREDS}/keystore.pkcs12" -out "${DIR_CREDS}/keystore.key" -nocerts -nodes -passin pass:${CA_PASS}
+
   # Сохраним пароли
   echo ${CA_PASS} > "${DIR_CREDS}/sslkey_creds"
   echo ${CA_PASS} > "${DIR_CREDS}/keystore_creds"
@@ -180,6 +186,11 @@ ssl.key.password=${CA_PASS}
 ssl.endpoint.identification.algorithm=https
 EOF
 
+GO_APP_PRODUCER="./go-app/creds/producer"
+mkdir -p ${GO_APP_PRODUCER}
+rm -rf ${GO_APP_PRODUCER}/*
+cp -r "${TMP_DIR}/producer/creds/" ${GO_APP_PRODUCER}
+
 # consumer
 create_cert "consumer"
 cat > "${TMP_DIR}/consumer/creds/consumer-client.properties" << EOF
@@ -194,6 +205,10 @@ ssl.key.password=${CA_PASS}
 ssl.endpoint.identification.algorithm=https
 EOF
 
+GO_APP_CONSUMER="./go-app/creds/consumer"
+mkdir -p ${GO_APP_CONSUMER}
+rm -rf ${GO_APP_CONSUMER}/*
+cp -r "${TMP_DIR}/consumer/creds/" ${GO_APP_CONSUMER}
 
 for i in 1 2 3; do
 
@@ -224,6 +239,6 @@ done
 # kafka-ui
 create_cert "kafka-ui"
 
-rm -rf ${MOUNT_DIR}//*
+rm -rf ${MOUNT_DIR}/*
 cp -r ${TMP_DIR}/ ${MOUNT_DIR}/
 rm -rf ${TMP_DIR}/

@@ -3,75 +3,87 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 
-	"github.com/RAdevelop/ya_practicum-kafka/unit_4/go-app/internal/config"
-	"github.com/RAdevelop/ya_practicum-kafka/unit_4/go-app/internal/consumer"
-	"github.com/RAdevelop/ya_practicum-kafka/unit_4/go-app/internal/logger"
-	"github.com/RAdevelop/ya_practicum-kafka/unit_4/go-app/internal/models"
-)
-
-const (
-	topicUsers = "pg.public.users"  // TODO hardcode - вынести в конфиг?
-	topicOrdes = "pg.public.orders" // TODO hardcode - вынести в конфиг?
+	"github.com/RAdevelop/ya_practicum-kafka/unit_5/go-app/internal/config"
+	"github.com/RAdevelop/ya_practicum-kafka/unit_5/go-app/internal/consumer"
+	"github.com/RAdevelop/ya_practicum-kafka/unit_5/go-app/internal/logger"
+	"github.com/RAdevelop/ya_practicum-kafka/unit_5/go-app/internal/models"
 )
 
 func main() {
+
+	var cfg config.Config
+	cfg.Load(".env")
+
+//TODO del
+	log.Printf("%+v", cfg.Consumer)
+	log.Printf("%+v", cfg.Producer)
+	log.Printf("%+v", cfg.Topic)
+	/*
+	   TODO DEL
+	   select {}
+
+	   	return
+	*/
 
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	defer ctxCancel()
 
 	logThis := logger.New("InMainApp")
 
-	var cfg config.Config
-	cfg.Load(".env")
+	// создаем консьюмера для чтения из topic-1
+	subscriberTopic1, loggerTopic1, deferCloseFuncSubscriberTopic1, err := consumerCreate("ConsumerTopic1", cfg, cfg.Consumer.GroupIdTopic1, 1)
+	if err != nil {
+		loggerTopic1.Error("Error on Consumer initialization: %v", err)
+		return
+	}
+	defer deferCloseFuncSubscriberTopic1()
+
+	// подключаемся к топику
+	err = subscriberTopic1.SubscribeTopic(cfg.Topic.Topic1)
+	if err != nil {
+		loggerTopic1.Error("Error on subscribe to a topic: %v", err)
+	}
+	loggerTopic1.Info("Subscribed to a topic: %s", cfg.Topic.Topic1)
+
+	//TODO del
+	//return
+
+	// создаем консьюмера для чтения из topic-2
+	subscriberTopic2, loggerTopic2, deferCloseFuncSubscriberTopic2, err := consumerCreate("ConsumerTopic2", cfg, cfg.Consumer.GroupIdTopic2, 1)
+	if err != nil {
+		loggerTopic2.Error("Error on initialization: %v", err)
+		return
+	}
+	defer deferCloseFuncSubscriberTopic2()
+
+	// подключаемся к топику topic-2
+	err = subscriberTopic2.SubscribeTopic(cfg.Topic.Topic2)
+	if err != nil {
+		loggerTopic2.Error("Error on subscribe to a topic: %v", err)
+	}
+	loggerTopic2.Info("Subscribed to a topic: %s", cfg.Topic.Topic2)
 
 	var wg sync.WaitGroup
 
-	// создаем консьюмера для чтения сообщения по 10 шт.
-	subscriberUsers, loggerUsers, deferCloseFuncSubscriberUsers, err := consumerCreate("ConsumerUsers", cfg, cfg.Consumer.GroupIdUsers, 1)
-	if err != nil {
-		loggerUsers.Error("Error on Consumer initialization: %v", err)
-		return
-	}
-	defer deferCloseFuncSubscriberUsers()
-
-	// подключаемся к топику
-	err = subscriberUsers.SubscribeTopic(topicUsers)
-	if err != nil {
-		loggerUsers.Error("Error on subscribe to a topic: %v", err)
-	}
-	loggerUsers.Info("Subscribed to a topic: %s", topicUsers)
-
-	// создаем консьюмера для чтения сообщения по одной шт
-	subscriberOrders, loggerOrders, deferCloseFuncSubscriberOrders, err := consumerCreate("ConsumerOrders", cfg, cfg.Consumer.GroupIdOrders, 1)
-	if err != nil {
-		loggerOrders.Error("Error on initialization: %v", err)
-		return
-	}
-	defer deferCloseFuncSubscriberOrders()
-
-	// подключаемся к топику
-	err = subscriberOrders.SubscribeTopic(topicOrdes)
-	if err != nil {
-		loggerOrders.Error("Error on subscribe to a topic: %v", err)
-	}
-	loggerOrders.Info("Subscribed to a topic: %s", topicOrdes)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		subscriberOrders.Consume(ctx, processMessage)
+		subscriberTopic1.Consume(ctx, processMessage)
 	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		subscriberUsers.Consume(ctx, processMessage)
-	}()
-
+	/*
+		//TODO
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			subscriberTopic2.Consume(ctx, processMessage)//должны быть ошибки доступа
+		}()
+	*/
 	//Обработка прерывания работы приложения, например, по CTR + c:
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -105,10 +117,10 @@ func consumerCreate[T models.Message](loggerPrefix string, config config.Config,
 // processMessage - callback функция для обработки сообщений в процессе их получения из Кафки
 func processMessage(ctx context.Context, logger *logger.Logger, messages []*models.Message) error {
 	/*
-	   обработка сообщений, полученных из Kafka, например:
-	   - сохранение данных в БД
-	   - отправка в какой-нибудь сервис
-	   - и тп
+		обработка сообщений, полученных из Kafka, например:
+		   - сохранение данных в БД
+		   - отправка в какой-нибудь сервис
+		   - и тп
 	*/
 
 	//пока просто выведем сообщения:

@@ -3,7 +3,9 @@ package config
 import "github.com/struct0x/envconfig"
 
 type Config struct {
+	Producer *producer `envPrefix:"PRODUCER"`
 	Consumer *consumer `envPrefix:"CONSUMER"`
+	Topic    *topic    `envPrefix:"TOPIC"`
 }
 
 func (c *Config) Load(envFilePath string) {
@@ -12,13 +14,35 @@ func (c *Config) Load(envFilePath string) {
 	}
 }
 
+type producer struct {
+	BootstrapServers               string `env:"BOOTSTRAP_SERVERS" envDefault:""`
+	Acks                           string `env:"ACKS" envDefault:"all"`
+	Retries                        int    `env:"RETRIES" envDefault:"10"`
+	RetryBackoffMs                 int    `env:"RETRY_BACKOFF_MS" envDefault:"100"`
+	EnableIdempotence              bool   `env:"ENABLE_IDEMPOTENCE" envDefault:"false"`
+	FlushTimeoutMs                 int    `env:"FLUSH_TIMEOUT_MS" envDefault:"15000"`
+	SocketConnectionSetupTimeoutMs int    `env:"SOCKET_CONNECTION_SETUP_TIMEOUT_MS" envDefault:"10000"`
+	SocketTimeoutMs                int    `env:"SOCKET_TIMEOUT_MS" envDefault:"30000"`
+}
+
 type consumer struct {
-	BootstrapServers      string `env:"BOOTSTRAP_SERVERS" envDefault:"kafka-b-1:9092"`
-	GroupIdUsers          string `env:"GROUP_ID_USERS" envDefault:"pg_public_users"`
-	GroupIdOrders         string `env:"GROUP_ID_ORDERS" envDefault:"pg_public_orders"`
+	BootstrapServers      string `env:"BOOTSTRAP_SERVERS" envDefault:"kafka-b-1:9093"`
+	GroupIdTopic1         string `env:"GROUP_ID_TOPIC_1" envDefault:""`
+	GroupIdTopic2         string `env:"GROUP_ID_TOPIC_2" envDefault:""`
 	AutoOffsetReset       string `env:"AUTO_OFFSET_RESET" envDefault:"earliest"`
 	EnableAutoCommit      bool   `env:"ENABLE_AUTO_COMMIT" envDefault:"false"`
 	EnableAutoOffsetStore bool   `env:"ENABLE_AUTO_OFFSET_STORE" envDefault:"false"`
 	FetchMinBytes         int    `env:"FETCH_MIN_BYTES" envDefault:"1024"`
 	FetchWaitMaxMs        int    `env:"FETCH_WAIT_MAX_MS" envDefault:"100"`
+
+	SecurityProtocol       string `env:"SECURITY_PROTOCOL"`
+	SslCaLocation          string `env:"SSL_CA_LOCATION"`
+	SslCertificateLocation string `env:"SSL_CERTIFICATE_LOCATION"`
+	SslKeyLocation         string `env:"SSL_KEY_LOCATION"`
+	SslKeyPassword         string `env:"SSL_KEY_PASSWORD"`
+}
+
+type topic struct {
+	Topic1 string `env:"TOPIC_1" envDefault:""`
+	Topic2 string `env:"TOPIC_2" envDefault:""`
 }

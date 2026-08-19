@@ -108,6 +108,17 @@ docker exec -it kafka-b-1 kafka-acls \
 --operation Describe \
 --topic "topic-1"
 
+#Дадим consumer права на чтение из группы:
+docker exec -it kafka-b-1 kafka-acls \
+--command-config /etc/kafka/secrets/admin/admin-client.properties \
+--bootstrap-server kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093 \
+--add \
+--allow-principal "User:CN=consumer,L=Moscow,OU=Practice,O=Yandex,C=RU" \
+--operation Read \
+--operation Describe \
+--group "*"
+
+
 ## Дадим `consumer` права на чтение из топика:
 docker exec -it kafka-b-1 kafka-acls \
 --command-config /etc/kafka/secrets/admin/admin-client.properties \
@@ -138,15 +149,6 @@ docker exec -it kafka-b-1 kafka-acls \
 --operation Describe \
 --topic "topic-2"
 
-## Дадим `consumer` права на топик (только для метаданных):
-docker exec -it kafka-b-1 kafka-acls \
---command-config /etc/kafka/secrets/admin/admin-client.properties \
---bootstrap-server kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093 \
---add \
---allow-principal "User:CN=consumer,L=Moscow,OU=Practice,O=Yandex,C=RU" \
---operation Describe \
---topic "topic-2"
-```
 
 ## Посмотрим Список прав - какие кому выдали
 ```bash
@@ -167,8 +169,6 @@ docker exec -it kafka-b-1 kafka-acls \
     - `operation=WRITE, permissionType=ALLOW`
     - `operation=DESCRIBE, permissionType=ALLOW`
 - для топика `topic-2`
-  - `consumer` имеет права просмотр метаданных:
-    - `operation=DESCRIBE, permissionType=ALLOW`
   - `producer` имеет права на запись:
     - `operation=WRITE, permissionType=ALLOW`
     - `operation=DESCRIBE, permissionType=ALLOW`
@@ -181,7 +181,6 @@ Current ACLs for resource `ResourcePattern(resourceType=TOPIC, name=topic-1, pat
 	(principal=User:CN=producer,L=Moscow,OU=Practice,O=Yandex,C=RU, host=*, operation=DESCRIBE, permissionType=ALLOW)
 
 Current ACLs for resource `ResourcePattern(resourceType=TOPIC, name=topic-2, patternType=LITERAL)`:
-	(principal=User:CN=consumer,L=Moscow,OU=Practice,O=Yandex,C=RU, host=*, operation=DESCRIBE, permissionType=ALLOW)
 	(principal=User:CN=producer,L=Moscow,OU=Practice,O=Yandex,C=RU, host=*, operation=WRITE, permissionType=ALLOW)
 	(principal=User:CN=producer,L=Moscow,OU=Practice,O=Yandex,C=RU, host=*, operation=DESCRIBE, permissionType=ALLOW)
 ```

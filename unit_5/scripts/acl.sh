@@ -33,6 +33,16 @@ docker exec -it kafka-b-1 kafka-acls \
 sleep 2
 
 echo "\n"
+echo "${YELLOW}Дадим consumer права на чтение из группы:${NC}"
+docker exec -it kafka-b-1 kafka-acls \
+--command-config ${COMMAND_CONFIG} \
+--bootstrap-server ${BOOTSTRAP_SERVER} \
+--add \
+--allow-principal "User:CN=consumer,L=Moscow,OU=Practice,O=Yandex,C=RU" \
+--operation Read \
+--operation Describe \
+--group "*"
+
 echo "${YELLOW}Дадим consumer права на чтение из топика:${NC}"
 docker exec -it kafka-b-1 kafka-acls \
 --command-config ${COMMAND_CONFIG} \
@@ -51,25 +61,12 @@ echo "${YELLOW} - Продюсеры могут отправлять сообщ�
 echo "${YELLOW} - Консьюмеры не имеют доступа к чтению данных.${NC}"
 echo "${YELLOW}Дадим producer права на запись в топик:${NC}"
 
-EOF
 docker exec -it kafka-b-1 kafka-acls \
 --command-config ${COMMAND_CONFIG} \
 --bootstrap-server ${BOOTSTRAP_SERVER} \
 --add \
 --allow-principal "User:CN=producer,L=Moscow,OU=Practice,O=Yandex,C=RU" \
 --operation Write \
---operation Describe \
---topic "topic-2"
-
-sleep 2
-
-echo "\n"
-echo "${YELLOW}Дадим consumer права на топик (только для метаданных):${NC}"
-docker exec -it kafka-b-1 kafka-acls \
---command-config ${COMMAND_CONFIG} \
---bootstrap-server ${BOOTSTRAP_SERVER} \
---add \
---allow-principal "User:CN=consumer,L=Moscow,OU=Practice,O=Yandex,C=RU" \
 --operation Describe \
 --topic "topic-2"
 

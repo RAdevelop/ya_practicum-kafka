@@ -1,4 +1,4 @@
-module github.com/RAdevelop/ya_practicum-kafka/unit_4/go-app
+module github.com/RAdevelop/ya_practicum-kafka/unit_5/go-app
 
 go 1.26
 

@@ -34,5 +34,7 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 COPY --from=builder /app/go-app .
+COPY --from=builder /app/creds /app/creds
+COPY --from=builder /app/.env /app/.env
 
 CMD ["./go-app"]

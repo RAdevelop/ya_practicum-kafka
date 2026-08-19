@@ -6,8 +6,8 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/RAdevelop/ya_practicum-kafka/unit_4/go-app/internal/config"
-	"github.com/RAdevelop/ya_practicum-kafka/unit_4/go-app/internal/logger"
+	"github.com/RAdevelop/ya_practicum-kafka/unit_5/go-app/internal/config"
+	"github.com/RAdevelop/ya_practicum-kafka/unit_5/go-app/internal/logger"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 )
 
@@ -48,6 +48,13 @@ func NewConsumer[T any](config config.Config, logger *logger.Logger, deserialize
 		"enable.auto.offset.store": config.Consumer.EnableAutoOffsetStore, // Включает/выключает автоматическое сохранение смещения в локальной памяти клиента
 		"fetch.min.bytes":          config.Consumer.FetchMinBytes,         // Минимум 1 KB за один запрос
 		"fetch.wait.max.ms":        config.Consumer.FetchWaitMaxMs,        // Ждём получение сообщения до FetchMaxWaitMs мс
+
+		//SSL
+		"security.protocol":        config.Consumer.SecurityProtocol,
+		"ssl.ca.location":          config.Consumer.SslCaLocation,
+		"ssl.certificate.location": config.Consumer.SslCertificateLocation,
+		"ssl.key.location":         config.Consumer.SslKeyLocation,
+		"ssl.key.password":         config.Consumer.SslKeyPassword,
 	})
 	if err != nil {
 		return nil, err
@@ -104,6 +111,7 @@ func (c *Consumer[T]) Consume(ctx context.Context, processBatchCb func(context.C
 				event := c.consumer.Poll(100)
 				// Если нет события, мы немедленно возвращаемся в начало цикла и проверяем ctx
 				if event == nil {
+					c.logger.Info("There is no message to read")
 					/*
 						Возможность отложенного повтора забрать сообщения (retry & backoff-тактика).
 						Чтобы не пробовать в холостую забирать сообщения
@@ -125,6 +133,7 @@ func (c *Consumer[T]) Consume(ctx context.Context, processBatchCb func(context.C
 					jitter := time.Duration(rand.Float64() * float64(sleepInterval) * 0.2)
 					sleepDuration = sleepInterval + jitter
 
+					c.logger.Info("Sleeping for %v", sleepDuration)
 					break
 				}
 
@@ -185,12 +194,12 @@ func (c *Consumer[T]) Consume(ctx context.Context, processBatchCb func(context.C
 
 				// Коммитим оффсет всей пачки
 				/*
-                   TODO ПРОСЬБА к РЕВЬЮЕРАМ: посмотрите код консьюмера на предмет корректности выполнения "ручного" Commit-а оффсет-ов.
-                     И учитывая код выше: c.consumer.StoreOffsets
-                     По предыдущим ревью я вроде бы поправил, хотел бы убедиться, что правильно.Commit
-                     А если не правильно, просьба явно пояснить что именно не так с примерами кода.
-                     Заранее спасибо :)
-				 */
+				   TODO ПРОСЬБА к РЕВЬЮЕРАМ: посмотрите код консьюмера на предмет корректности выполнения "ручного" Commit-а оффсет-ов.
+				     И учитывая код выше: c.consumer.StoreOffsets
+				     По предыдущим ревью я вроде бы поправил, хотел бы убедиться, что правильно.Commit
+				     А если не правильно, просьба явно пояснить что именно не так с примерами кода.
+				     Заранее спасибо :)
+				*/
 				if err == nil {
 					_, err = c.consumer.Commit()
 					if err != nil {

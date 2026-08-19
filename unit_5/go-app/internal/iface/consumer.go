@@ -3,7 +3,7 @@ package iface
 import (
 	"context"
 
-	"github.com/RAdevelop/ya_practicum-kafka/unit_4/go-app/internal/logger"
+	"github.com/RAdevelop/ya_practicum-kafka/unit_5/go-app/internal/logger"
 )
 
 type Consumer[T any] interface {
