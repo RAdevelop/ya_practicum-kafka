@@ -236,3 +236,38 @@ Current ACLs for resource `ResourcePattern(resourceType=TOPIC, name=*, patternTy
     --operation Describe \
     --cluster 
   ```
+## Go-App
+
+В логах контейнера app увидим логи вида:
+
+- `Producer` - успешно подключился и успешно отправил сообщения в топики: `topic-1`, `topic-2`
+```text
+INFO: 2026/08/19 03:58:27 Producer: in file: main.go:37: Producer has been connected to the brokers
+
+INFO: 2026/08/19 03:58:27 Producer: in file: main.go:117: Message has been sent to topic: topic-1 :
+Message{ID:0, Payload:"Hello from producer", Ts:1787111907423736980}
+
+INFO: 2026/08/19 03:58:27 Producer: in file: main.go:124: Message has been sent to topic: topic-2 :
+Message{ID:0, Payload:"Hello from producer", Ts:1787111907423736980}
+```
+
+- У `ConsumerTopic2` 
+  - нет прав на чтение `topic-2` - поэтому ошибка
+  - но подписываться на топик все равно может
+```text
+INFO: 2026/08/19 03:58:27 ConsumerTopic2: in file: main.go:83: Subscribed to a topic: topic-2
+
+ERROR: 2026/08/19 03:21:59 ConsumerTopic2: in file: consumer.go:174: readingEvent.Code() = Broker: Topic authorization failed: readingEvent = Subscribed topic not available: topic-2: Broker: Topic authorization failed, readingEvent.IsRetriable() = false
+```
+
+
+- У `ConsumerTopic1` 
+  - есть права на чтение из `topic-1` - поэтому ошибки нет
+  - успешно прочитал сообщение из топика
+  - и подписываться на топик все равно может
+```text
+INFO: 2026/08/19 03:58:27 ConsumerTopic1: in file: main.go:68: Subscribed to a topic: topic-1
+
+INFO: 2026/08/19 03:59:28 ConsumerTopic1: in file: main.go:190: Processing batch:
+[Message{ID:99, Payload:"Hello from producer", Ts:1787111694801085135} Message{ID:0, Payload:"Hello from producer", Ts:1787111907423736980} Message{ID:97, Payload:"Hello from producer", Ts:1787111694801084889} Message{ID:1, Payload:"Hello from producer", Ts:1787111907423741500} Message{ID:98, Payload:"Hello from producer", Ts:1787111694801085014}]
+```

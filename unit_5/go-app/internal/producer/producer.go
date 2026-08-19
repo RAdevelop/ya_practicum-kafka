@@ -31,6 +31,13 @@ func NewProducer[T any](config config.Config, logger *logger.Logger, serializer 
 		"socket.connection.setup.timeout.ms": config.Producer.SocketConnectionSetupTimeoutMs,
 		// Определяет максимальное время ожидания ответа на уже отправленный запрос по уже установленному соединению:
 		"socket.timeout.ms": config.Producer.SocketTimeoutMs,
+
+		//SSL
+		"security.protocol":        config.Producer.SecurityProtocol,
+		"ssl.ca.location":          config.Producer.SslCaLocation,
+		"ssl.certificate.location": config.Producer.SslCertificateLocation,
+		"ssl.key.location":         config.Producer.SslKeyLocation,
+		"ssl.key.password":         config.Producer.SslKeyPassword,
 	})
 	if err != nil {
 		return nil, err
@@ -44,14 +51,13 @@ func NewProducer[T any](config config.Config, logger *logger.Logger, serializer 
 	}, nil
 }
 
-// SendMessage - отправка сообщения в указаный топик
+// SendMessage - отправка сообщения в указанный топик
 func (p *Producer[T]) SendMessage(topic string, msg *T) (err error) {
 
 	messageForProducer, err := p.serialize(msg)
 	if err != nil {
 		return err
 	}
-	p.logger.Info("The producer created a serialized message: %v", messageForProducer)
 
 	deliveryChan := make(chan kafka.Event, 1)
 

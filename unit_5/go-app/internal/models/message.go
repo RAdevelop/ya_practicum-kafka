@@ -1,13 +1,15 @@
 package models
 
+import "fmt"
+
 // Message - структура отправляемых/получаемых сообщений
 type Message struct {
-	Before      interface{} `json:"before"`
-	After       interface{} `json:"after"`
-	Source      interface{} `json:"source"`
-	Transaction interface{} `json:"transaction"`
-	Op          string      `json:"op"`
-	TsMs        int64       `json:"ts_ms"`
-	TsUs        int64       `json:"ts_us"`
-	TsNs        int64       `json:"ts_ns"`
+	ID      int    `json:"id"`
+	Payload string `json:"payload"`
+	Ts      int64  `json:"ts"`
+}
+
+// String - простое строковое представление Message
+func (m Message) String() string {
+	return fmt.Sprintf("Message{ID:%d, Payload:%q, Ts:%d}", m.ID, m.Payload, m.Ts)
 }

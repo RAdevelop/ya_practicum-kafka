@@ -111,7 +111,7 @@ func (c *Consumer[T]) Consume(ctx context.Context, processBatchCb func(context.C
 				event := c.consumer.Poll(100)
 				// Если нет события, мы немедленно возвращаемся в начало цикла и проверяем ctx
 				if event == nil {
-					c.logger.Info("There is no message to read")
+					//c.logger.Info("There is no message to read")
 					/*
 						Возможность отложенного повтора забрать сообщения (retry & backoff-тактика).
 						Чтобы не пробовать в холостую забирать сообщения
@@ -133,7 +133,7 @@ func (c *Consumer[T]) Consume(ctx context.Context, processBatchCb func(context.C
 					jitter := time.Duration(rand.Float64() * float64(sleepInterval) * 0.2)
 					sleepDuration = sleepInterval + jitter
 
-					c.logger.Info("Sleeping for %v", sleepDuration)
+					//c.logger.Info("Sleeping for %v", sleepDuration)
 					break
 				}
 

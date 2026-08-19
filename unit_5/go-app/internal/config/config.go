@@ -23,6 +23,12 @@ type producer struct {
 	FlushTimeoutMs                 int    `env:"FLUSH_TIMEOUT_MS" envDefault:"15000"`
 	SocketConnectionSetupTimeoutMs int    `env:"SOCKET_CONNECTION_SETUP_TIMEOUT_MS" envDefault:"10000"`
 	SocketTimeoutMs                int    `env:"SOCKET_TIMEOUT_MS" envDefault:"30000"`
+
+	SecurityProtocol       string `env:"SECURITY_PROTOCOL"`
+	SslCaLocation          string `env:"SSL_CA_LOCATION"`
+	SslCertificateLocation string `env:"SSL_CERTIFICATE_LOCATION"`
+	SslKeyLocation         string `env:"SSL_KEY_LOCATION"`
+	SslKeyPassword         string `env:"SSL_KEY_PASSWORD"`
 }
 
 type consumer struct {
