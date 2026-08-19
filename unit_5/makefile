@@ -72,10 +72,21 @@ wait:
 wait10:
 	@sleep 10
 
+## Пересобрать с очисткой
 .PHONY: rebuild
-rebuild: down clean ssl up ## Пересобрать с очисткой
+rebuild: down clean ssl up
 
+## Пересобрать все с очисткой
 .PHONY: rebuild-all
-rebuild-all: down clean ssl up wait topic wait10 acl ## Пересобрать все с очисткой
+rebuild-all:
+	@$(MAKE) down
+	@$(MAKE) clean
+	@$(MAKE) ssl
+	@$(MAKE) up
+	@$(MAKE) wait
+	@$(MAKE) topic
+	@$(MAKE) wait10
+	@$(MAKE) acl
+	@$(DOCKER_COMPOSE) restart app
 
 .DEFAULT_GOAL := help
