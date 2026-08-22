@@ -173,6 +173,7 @@ services:
     hostname: schema-registry
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_COMPATIBILITY_LEVEL: "FULL"
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093"
       SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL: "SSL"
       SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_LOCATION: "/etc/schema-registry/secrets/truststore.jks"
