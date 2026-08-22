@@ -8,6 +8,7 @@ DOCKER_COMPOSE = docker-compose
 SSL_SCRIPT = ./scripts/certs.sh
 TOPIC_SCRIPT = ./scripts/topic.sh
 ACL_SCRIPT = ./scripts/acl.sh
+SCHEMA_REG_SCRIPT = ./scripts/schema-registry.sh
 
 # Цвета для вывода
 GREEN = \033[0;32m
@@ -24,6 +25,12 @@ ssl: ## Сгенерировать SSL сертификаты
 	@echo "$(GREEN)=== Generating SSL certificates ===$(NC)"
 	@sh $(SSL_SCRIPT)
 	@echo "$(GREEN)✅ SSL certificates generated successfully$(NC)"
+
+.PHONY: schema-reg
+schema-reg: ## Регистрация схем в schema-registry
+	@echo "$(GREEN)=== Uploading Schema to SchemaRegistry start===$(NC)"
+	@sh $(SCHEMA_REG_SCRIPT)
+	@echo "$(GREEN)✅ Uploading Schema to SchemaRegistry finished$(NC)"
 
 .PHONY: topic
 topic: ## Создать топики
@@ -69,7 +76,9 @@ wait:
 
 .PHONY: wait10
 wait10:
+	@echo "$(YELLOW)=== Waiting 10 seconds for Kafka to be ready ===$(NC)"
 	@sleep 10
+	@echo "$(GREEN)✅ Wait complete$(NC)"
 
 .PHONY: rebuild
 rebuild: ## Пересобрать кластер
@@ -90,6 +99,8 @@ rebuild-all:  ## Пересобрать кластер, создать топи�
 	@$(MAKE) wait10
 	@$(MAKE) acl
 	@$(DOCKER_COMPOSE) restart schema-registry
+	@$(MAKE) wait10
+	@$(MAKE) schema-reg
 #	@$(DOCKER_COMPOSE) restart app
 
 .DEFAULT_GOAL := help

@@ -4,8 +4,10 @@ NC='\033[0m' # No Color
 
 COMMAND_CONFIG="/etc/kafka/secrets/admin/admin-client.properties"
 BOOTSTRAP_SERVER="kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093"
+TOPIC_NAME="metric"
 
-echo "${YELLOW}Create topic-1${NC}"
+
+echo "${YELLOW}Create topic: ${TOPIC_NAME}${NC}"
 #cleanup.policy=compact
 # - delete   - Удаляет старые данные по времени или размеру
 # - compact  - Сохраняет только последнее значение для каждого ключа
@@ -17,7 +19,7 @@ docker exec -it kafka-b-1 kafka-topics \
 --command-config ${COMMAND_CONFIG} \
 --bootstrap-server ${BOOTSTRAP_SERVER} \
 --create \
---topic topic-1 \
+--topic ${TOPIC_NAME} \
 --partitions 3 \
 --replication-factor 3 \
 --config cleanup.policy=compact \
@@ -25,8 +27,10 @@ docker exec -it kafka-b-1 kafka-topics \
 --config segment.bytes=536870912 \
 --config min.insync.replicas=3
 
+echo "\n"
+echo "${YELLOW}Describe topic: ${TOPIC_NAME}${NC}"
 docker exec -it kafka-b-1 kafka-topics \
 --command-config ${COMMAND_CONFIG} \
 --bootstrap-server ${BOOTSTRAP_SERVER} \
 --describe \
---topic topic-1
+--topic ${TOPIC_NAME}

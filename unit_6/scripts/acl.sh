@@ -5,6 +5,7 @@ NC='\033[0m' # No Color
 
 COMMAND_CONFIG="/etc/kafka/secrets/admin/admin-client.properties"
 BOOTSTRAP_SERVER="kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093"
+TOPIC_NAME="metric"
 
 ############################################################ User schema-registry
 echo "${YELLOW}Дадим schema-registry права на группу 'schema-registry' ${NC}"
@@ -56,7 +57,7 @@ docker exec -it kafka-b-1 kafka-acls \
 --topic "*"
 
 echo "\n"
-echo "${YELLOW}topic-1: Доступен как для продюсеров, так и для консьюмеров.${NC}"
+echo "${YELLOW}Топик '${TOPIC_NAME}': Доступен как для продюсеров, так и для консьюмеров.${NC}"
 echo "${YELLOW}Дадим producer права на запись в топик:${NC}"
 
 ############################################################ User producer
@@ -67,7 +68,7 @@ docker exec -it kafka-b-1 kafka-acls \
 --allow-principal "User:CN=producer,L=Moscow,OU=Practice,O=Yandex,C=RU" \
 --operation Write \
 --operation Describe \
---topic "topic-1"
+--topic ${TOPIC_NAME}
 
 
 ############################################################ User consumer
@@ -90,4 +91,4 @@ docker exec -it kafka-b-1 kafka-acls \
 --allow-principal "User:CN=consumer,L=Moscow,OU=Practice,O=Yandex,C=RU" \
 --operation Read \
 --operation Describe \
---topic "topic-1"
+--topic ${TOPIC_NAME}

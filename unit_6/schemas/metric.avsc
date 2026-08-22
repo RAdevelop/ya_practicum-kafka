@@ -1,0 +1,27 @@
+{
+  "type": "record",
+  "name": "Metric",
+  "namespace": "ru.yandex.practicum.kafka",
+  "doc": "Metric data schema for Kafka messages",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string",
+      "doc": "Metric unique identifier"
+    },
+    {
+      "name": "type",
+      "type": {
+        "type": "enum",
+        "name": "MetricType",
+        "symbols": ["counter"]
+      }
+    },
+    {
+      "name": "delta",
+      "type": ["null", "long"],
+      "default": null,
+      "doc": "Delta value for counter"
+    }
+  ]
+}
