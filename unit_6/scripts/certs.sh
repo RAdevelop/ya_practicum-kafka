@@ -241,6 +241,10 @@ create_cert "kafka-ui"
 
 # schema-registry
 create_cert "schema-registry"
+GO_APP_SCHEMA_REGISTRY="./go-app/creds/schema-registry"
+mkdir -p ${GO_APP_SCHEMA_REGISTRY}
+rm -rf ${GO_APP_SCHEMA_REGISTRY}/*
+cp -r "${TMP_DIR}/schema-registry/creds/" ${GO_APP_SCHEMA_REGISTRY}
 
 rm -rf ${MOUNT_DIR}/*
 cp -r ${TMP_DIR}/ ${MOUNT_DIR}/

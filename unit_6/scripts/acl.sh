@@ -3,10 +3,6 @@
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 
-COMMAND_CONFIG="/etc/kafka/secrets/admin/admin-client.properties"
-BOOTSTRAP_SERVER="kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093"
-TOPIC_NAME="metric"
-
 ############################################################ User schema-registry
 echo "${YELLOW}Дадим schema-registry права на группу 'schema-registry' ${NC}"
 docker exec -it kafka-b-1 kafka-acls \

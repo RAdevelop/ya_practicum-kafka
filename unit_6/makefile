@@ -2,6 +2,9 @@
 
 #ENV
 export CA_PASS := kafka123
+export TOPIC_NAME := metric
+export COMMAND_CONFIG := /etc/kafka/secrets/admin/admin-client.properties
+export BOOTSTRAP_SERVER := kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093
 
 # Переменные
 DOCKER_COMPOSE = docker-compose
@@ -25,6 +28,15 @@ ssl: ## Сгенерировать SSL сертификаты
 	@echo "$(GREEN)=== Generating SSL certificates ===$(NC)"
 	@sh $(SSL_SCRIPT)
 	@echo "$(GREEN)✅ SSL certificates generated successfully$(NC)"
+
+
+.PHONY: unset-env
+unset-env: ## Удалить ENV переменные для скриптов
+	@echo "$(GREEN)=== Cleaning environment ===$(NC)"
+	@for var in CA_PASS TOPIC_NAME COMMAND_CONFIG BOOTSTRAP_SERVER; do \
+		unset $$var; \
+	done
+	@echo "$(GREEN)✅ Environment cleaned$(NC)"
 
 .PHONY: schema-reg
 schema-reg: ## Регистрация схем в schema-registry
@@ -86,6 +98,7 @@ rebuild: ## Пересобрать кластер
 	@$(MAKE) clean
 	@$(MAKE) ssl
 	@$(MAKE) up
+	@$(MAKE) unset-env
 
 ## Пересобрать все с очисткой
 .PHONY: rebuild-all
@@ -101,6 +114,7 @@ rebuild-all:  ## Пересобрать кластер, создать топи�
 	@$(DOCKER_COMPOSE) restart schema-registry
 	@$(MAKE) wait10
 	@$(MAKE) schema-reg
+	@$(MAKE) unset-env
 #	@$(DOCKER_COMPOSE) restart app
 
 .DEFAULT_GOAL := help
