@@ -2,84 +2,46 @@ package serializer
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/RAdevelop/ya_practicum-kafka/unit_6/go-app/internal/config"
-	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde/avrov3"
 )
 
 type Avro[T any] struct {
-	client       schemaregistry.Client
-	serializer   serde.Serializer
-	deserializer serde.Deserializer
-	config       config.Config
+	serialize[T]
 }
 
 func NewAvro[T any](config config.Config) (*Avro[T], error) {
 
-	configSchemaRegistry := schemaregistry.NewConfig(config.SchemaRegistry.URL)
-	configSchemaRegistry.SslCertificateLocation = config.SchemaRegistry.SslCertificateLocation
-	configSchemaRegistry.SslKeyLocation = config.SchemaRegistry.SslKeyLocation
-	configSchemaRegistry.SslCaLocation = config.SchemaRegistry.SslCaLocation
-	configSchemaRegistry.SslDisableEndpointVerification = config.SchemaRegistry.SslDisableEndpointVerification
+	serializer := &Avro[T]{}
+	serializer.config = config
 
-	client, err := schemaregistry.NewClient(configSchemaRegistry)
+	var err error
+	serializer.client, err = serializer.schemaRegistryClient()
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, serializer.Close())
 	}
 
-	a := &Avro[T]{
-		client: client,
-	}
+	avroSerializerConfig := avrov3.NewSerializerConfig()
+	avroSerializerConfig.AutoRegisterSchemas = false
+	avroSerializerConfig.UseLatestVersion = true
 
-	serConfig := avrov3.NewSerializerConfig()
-	serConfig.AutoRegisterSchemas = false
-	serConfig.UseLatestVersion = true
-	a.serializer, err = avrov3.NewSerializer(client, serde.ValueSerde, serConfig)
-	if err != nil {
-		return nil, errors.Join(err, a.Close())
-	}
-
-	a.deserializer, err = avrov3.NewDeserializer(client, serde.ValueSerde, avrov3.NewDeserializerConfig())
+	serializer.serializer, err = avrov3.NewSerializer(serializer.client, serde.ValueSerde, avroSerializerConfig)
 
 	if err != nil {
-		return nil, errors.Join(err, a.Close())
+		return nil, errors.Join(err, serializer.Close())
 	}
 
-	a.config = config
+	avroDeserializerConfig := avrov3.NewDeserializerConfig()
+	avroDeserializerConfig.UseLatestVersion = true
+	avroDeserializerConfig.SubjectNameStrategyType = serde.TopicNameStrategyType
 
-	return a, nil
-}
-func (a *Avro[T]) Close() error {
+	serializer.deserializer, err = avrov3.NewDeserializer(serializer.client, serde.ValueSerde, avroDeserializerConfig)
 
-	var cErr, sErr, dErr error
-
-	if a.serializer != nil {
-		sErr = a.serializer.Close()
-	}
-	if a.deserializer != nil {
-		dErr = a.deserializer.Close()
+	if err != nil {
+		return nil, errors.Join(err, serializer.Close())
 	}
 
-	if a.client != nil {
-		cErr = a.client.Close()
-	}
-
-	return errors.Join(sErr, dErr, cErr)
-}
-
-func (a *Avro[T]) Deserialize(topic string, data []byte, result *T) error {
-	if a.deserializer == nil {
-		return fmt.Errorf("deserializer is not initialized")
-	}
-
-	return a.deserializer.DeserializeInto(topic, data, result)
-}
-func (a *Avro[T]) Serialize(topic string, data *T) ([]byte, error) {
-	if a.serializer == nil {
-		return nil, fmt.Errorf("serializer is not initialized")
-	}
-	return a.serializer.Serialize(topic, data)
+	return serializer, nil
 }

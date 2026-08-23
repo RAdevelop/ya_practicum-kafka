@@ -2,88 +2,47 @@ package serializer
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/RAdevelop/ya_practicum-kafka/unit_6/go-app/internal/config"
-	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde/jsonschema"
 )
 
 type Json[T any] struct {
-	client       schemaregistry.Client
-	serializer   serde.Serializer
-	deserializer serde.Deserializer
-	config       config.Config
+	serialize[T]
 }
 
 func NewJson[T any](config config.Config) (*Json[T], error) {
 
-	configSchemaRegistry := schemaregistry.NewConfig(config.SchemaRegistry.URL)
-	configSchemaRegistry.SslCertificateLocation = config.SchemaRegistry.SslCertificateLocation
-	configSchemaRegistry.SslKeyLocation = config.SchemaRegistry.SslKeyLocation
-	configSchemaRegistry.SslCaLocation = config.SchemaRegistry.SslCaLocation
-	configSchemaRegistry.SslDisableEndpointVerification = config.SchemaRegistry.SslDisableEndpointVerification
+	serializer := &Json[T]{}
+	serializer.config = config
 
-	client, err := schemaregistry.NewClient(configSchemaRegistry)
+	var err error
+	serializer.client, err = serializer.schemaRegistryClient()
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, serializer.Close())
 	}
 
-	j := &Json[T]{
-		client: client,
-	}
+	jsonSerializerConfig := jsonschema.NewSerializerConfig()
+	jsonSerializerConfig.AutoRegisterSchemas = false
+	jsonSerializerConfig.UseLatestVersion = true
+	jsonSerializerConfig.SubjectNameStrategyType = serde.TopicNameStrategyType
 
-	serConfig := jsonschema.NewSerializerConfig()
-	serConfig.AutoRegisterSchemas = false
-	serConfig.UseLatestVersion = true
-	serConfig.SubjectNameStrategyType = serde.TopicNameStrategyType
-	j.serializer, err = jsonschema.NewSerializer(client, serde.ValueSerde, serConfig)
-	if err != nil {
-		return nil, errors.Join(err, j.Close())
-	}
-
-	dserConfig := jsonschema.NewDeserializerConfig()
-	dserConfig.UseLatestVersion = true
-	dserConfig.SubjectNameStrategyType = serde.TopicNameStrategyType
-	j.deserializer, err = jsonschema.NewDeserializer(client, serde.ValueSerde, dserConfig)
+	serializer.serializer, err = jsonschema.NewSerializer(serializer.client, serde.ValueSerde, jsonSerializerConfig)
 
 	if err != nil {
-		return nil, errors.Join(err, j.Close())
+		return nil, errors.Join(err, serializer.Close())
 	}
 
-	j.config = config
+	jsonDeserializerConfig := jsonschema.NewDeserializerConfig()
+	jsonDeserializerConfig.UseLatestVersion = true
+	jsonDeserializerConfig.SubjectNameStrategyType = serde.TopicNameStrategyType
 
-	return j, nil
-}
-func (j *Json[T]) Close() error {
+	serializer.deserializer, err = jsonschema.NewDeserializer(serializer.client, serde.ValueSerde, jsonDeserializerConfig)
 
-	var cErr, sErr, dErr error
-
-	if j.serializer != nil {
-		sErr = j.serializer.Close()
-	}
-	if j.deserializer != nil {
-		dErr = j.deserializer.Close()
+	if err != nil {
+		return nil, errors.Join(err, serializer.Close())
 	}
 
-	if j.client != nil {
-		cErr = j.client.Close()
-	}
-
-	return errors.Join(sErr, dErr, cErr)
-}
-
-func (j *Json[T]) Deserialize(topic string, data []byte, result *T) error {
-	if j.deserializer == nil {
-		return fmt.Errorf("deserializer is not initialized")
-	}
-
-	return j.deserializer.DeserializeInto(topic, data, result)
-}
-func (j *Json[T]) Serialize(topic string, data *T) ([]byte, error) {
-	if j.serializer == nil {
-		return nil, fmt.Errorf("serializer is not initialized")
-	}
-	return j.serializer.Serialize(topic, data)
+	return serializer, nil
 }
