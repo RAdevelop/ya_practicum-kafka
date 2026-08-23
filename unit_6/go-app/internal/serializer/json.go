@@ -78,9 +78,7 @@ func (j *Json[T]) Deserialize(topic string, data []byte, result *T) error {
 	if j.deserializer == nil {
 		return fmt.Errorf("deserializer is not initialized")
 	}
-	if result == nil {
-		return fmt.Errorf("result cannot be nil")
-	}
+
 	return j.deserializer.DeserializeInto(topic, data, result)
 }
 func (j *Json[T]) Serialize(topic string, data *T) ([]byte, error) {

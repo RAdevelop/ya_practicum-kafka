@@ -13,7 +13,7 @@ type Message struct {
 }
 
 // String - простое строковое представление Message
-func (m Message) String() string {
+func (m *Message) String() string {
 
 	var delta string
 	delta = "null"
@@ -22,4 +22,8 @@ func (m Message) String() string {
 	}
 
 	return fmt.Sprintf("Message{ID:%d, MType:%q, Delta:%s}", m.ID, m.MType, delta)
+}
+
+func (m *Message) IdAsByte() []byte {
+	return []byte(fmt.Sprintf("%d", m.ID))
 }

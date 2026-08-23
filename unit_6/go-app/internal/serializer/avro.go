@@ -74,9 +74,7 @@ func (a *Avro[T]) Deserialize(topic string, data []byte, result *T) error {
 	if a.deserializer == nil {
 		return fmt.Errorf("deserializer is not initialized")
 	}
-	if result == nil {
-		return fmt.Errorf("result cannot be nil")
-	}
+
 	return a.deserializer.DeserializeInto(topic, data, result)
 }
 func (a *Avro[T]) Serialize(topic string, data *T) ([]byte, error) {

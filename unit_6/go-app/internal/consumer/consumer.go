@@ -19,6 +19,7 @@ type Consumer[T any] struct {
 	serializable serializer.Serializable[T]
 	batchSize    int
 	batch        []*T
+	offsets      []kafka.TopicPartition
 	topic        string
 }
 
@@ -155,26 +156,20 @@ func (c *Consumer[T]) Consume(ctx context.Context, processBatchCb func(context.C
 					sleepInterval = baseSleepInterval
 
 					// Если есть событие с сообщением, десериализуем его:
-					var message *T
-					//err = c.serializable.Deserialize(c.topic, readingEvent.Value, message)
+					message := new(T)
 					err = c.serializable.Deserialize(*readingEvent.TopicPartition.Topic, readingEvent.Value, message)
+
 					if err != nil {
-						c.Logger.Error("Consumer's deserialize error: %v", err)
+						c.Logger.Error("Consumer's deserialize error: %v, message type: %T", err, *message)
 						// положить такие сообщения в DLQ топик
 						// идем за следующим сообщением:
 						continue
 					}
 
-					// Сохраняем смещение вручную в памяти
-					_, errStoreOffsets := c.consumer.StoreOffsets([]kafka.TopicPartition{
-						readingEvent.TopicPartition,
-					})
+					// собираем смещения
+					c.offsets = append(c.offsets, readingEvent.TopicPartition)
 
-					if errStoreOffsets != nil {
-						c.Logger.Error("store offset error: %v", errStoreOffsets)
-						continue
-					}
-
+					// собираем сообщения
 					c.batch = append(c.batch, message)
 
 					// заголовки сообщения
@@ -201,27 +196,28 @@ func (c *Consumer[T]) Consume(ctx context.Context, processBatchCb func(context.C
 							- Можно добавить стратегию повторных попыток выполнения processBatchCb с backoff-тактикой.
 								- Если после попыток все равно есть ошибка, положить такие сообщения из c.batch в DLQ топик
 						*/
+
+						c.clearBatchAndOffsets()
+						continue
 					}
 				}
 
 				// Коммитим offset всей пачки
-				/*
-				   TODO ПРОСЬБА к РЕВЬЮЕРАМ: посмотрите код консьюмера на предмет корректности выполнения "ручного" Commit-а оффсет-ов.
-				     И учитывая код выше: c.consumer.StoreOffsets
-				     По предыдущим ревью я вроде бы поправил, хотел бы убедиться, что правильно.Commit
-				     А если не правильно, просьба явно пояснить что именно не так с примерами кода.
-				     Заранее спасибо :)
-				*/
 				if err == nil {
-					_, err = c.consumer.Commit()
+					_, err = c.consumer.CommitOffsets(c.offsets)
 					if err != nil {
 						c.Logger.Error("commit offset error: %v", err)
 					}
 				}
 
 				// Очищаем пачку
-				c.batch = c.batch[:0]
+				c.clearBatchAndOffsets()
 			}
 		}
 	}
+}
+
+func (c *Consumer[T]) clearBatchAndOffsets() {
+	c.batch = c.batch[:0]
+	c.offsets = c.offsets[:0]
 }

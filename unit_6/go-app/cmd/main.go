@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -27,11 +26,16 @@ func main() {
 	cfg.Load(".env")
 
 	serialization, err := serializer.NewAvro[models.Message](cfg)
-	//serialization, err := serializer.NewJson[models.Message](cfg)
 	if err != nil {
 		logApp.Error("error serializer create: %v", err)
 		return
 	}
+	defer func() {
+		err := serialization.Close()
+		if err != nil {
+			logApp.Error("error serializer close: %v", err)
+		}
+	}()
 
 	// создаем продюсера
 	publisher, err := producer.NewProducer[models.Message](cfg, logger.New("Producer"), serialization)
@@ -57,28 +61,28 @@ func main() {
 		defer wg.Done()
 		produceMessage(cfg, publisher, produceChannel)
 	}(ctx)
-	/*
-		// создаем консьюмера для чтения сообщения по одной шт
-		subscriber, deferCloseFuncSubscriber, err := consumerCreate("Consumer", cfg, serialization, cfg.Consumer.GroupId, 1)
-		if err != nil {
-			logApp.Error("Error on initialization: %v", err)
-			return
-		}
-		defer deferCloseFuncSubscriber()
 
-		// подключаемся к "топику"
-		err = subscriber.SubscribeTopic(cfg.Topic.Metric)
-		if err != nil {
-			subscriber.Logger.Error("Error on subscribe to a topic: %v", err)
-		}
-		subscriber.Logger.Info("Subscribed to a topic: %s", cfg.Topic.Metric)
+	// создаем консьюмера для чтения сообщения по одной шт
+	subscriber, deferCloseFuncSubscriber, err := consumerCreate("Consumer", cfg, serialization, cfg.Consumer.GroupId, 10)
+	if err != nil {
+		logApp.Error("Error on initialization: %v", err)
+		return
+	}
+	defer deferCloseFuncSubscriber()
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			subscriber.Consume(ctx, processBatchCb) //будут ошибки для topic-2, так как консьюмерам не дали доступ к этому топику
-		}()
-	*/
+	// подключаемся к "топику"
+	err = subscriber.SubscribeTopic(cfg.Topic.Metric)
+	if err != nil {
+		subscriber.Logger.Error("Error on subscribe to a topic: %v", err)
+	}
+	subscriber.Logger.Info("Subscribed to a topic: %s", cfg.Topic.Metric)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		subscriber.Consume(ctx, processBatchCb)
+	}()
+
 	//Обработка прерывания работы приложения, например, по CTR + c:
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -95,8 +99,7 @@ func produceMessage(config config.Config, publisher *producer.Producer[models.Me
 
 	for message := range produceChannel {
 
-		key := []byte(fmt.Sprintf("%d", message.ID))
-		errTopicMetric := publisher.SendMessage(config.Topic.Metric, message, key)
+		errTopicMetric := publisher.SendMessage(config.Topic.Metric, message, message.IdAsByte())
 		if errTopicMetric != nil {
 			publisher.Logger.Error("Error sending the message to topic: %s (%v):\n%v", config.Topic.Metric, errTopicMetric, message)
 		} else {
