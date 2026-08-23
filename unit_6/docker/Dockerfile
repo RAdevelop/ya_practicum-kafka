@@ -1,5 +1,5 @@
 # Этап 1: Сборка
-FROM golang:1.26.3-bookworm AS builder
+FROM golang:1.26.5-bookworm AS builder
 
 # Устанавливаем зависимости для CGO
 RUN apt-get update && apt-get install -y \

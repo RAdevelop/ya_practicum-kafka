@@ -82,8 +82,8 @@ status: ## Проверить статус контейнеров
 
 .PHONY: wait
 wait:
-	@echo "$(YELLOW)=== Waiting 30 seconds for Kafka to be ready ===$(NC)"
-	@sleep 30
+	@echo "$(YELLOW)=== Waiting 40 seconds for Kafka to be ready ===$(NC)"
+	@sleep 40
 	@echo "$(GREEN)✅ Wait complete$(NC)"
 
 .PHONY: wait10
@@ -111,10 +111,9 @@ rebuild-all:  ## Пересобрать кластер, создать топи�
 	@$(MAKE) topic
 	@$(MAKE) wait10
 	@$(MAKE) acl
-	@$(DOCKER_COMPOSE) restart schema-registry
-	@$(MAKE) wait10
+	@$(MAKE) wait
 	@$(MAKE) schema-reg
 	@$(MAKE) unset-env
-#	@$(DOCKER_COMPOSE) restart app
+	@$(DOCKER_COMPOSE) up -d --no-deps --build app
 
 .DEFAULT_GOAL := help

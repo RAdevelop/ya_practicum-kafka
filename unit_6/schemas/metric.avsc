@@ -6,7 +6,7 @@
   "fields": [
     {
       "name": "id",
-      "type": "string",
+      "type": "long",
       "doc": "Metric unique identifier"
     },
     {
