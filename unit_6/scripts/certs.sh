@@ -239,6 +239,9 @@ done
 # kafka-ui
 create_cert "kafka-ui"
 
+# nifi
+create_cert "nifi"
+
 # schema-registry
 create_cert "schema-registry"
 GO_APP_SCHEMA_REGISTRY="./go-app/creds/schema-registry"

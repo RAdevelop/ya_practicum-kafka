@@ -25,7 +25,7 @@ func main() {
 	var cfg config.Config
 	cfg.Load(".env")
 
-	serialization, err := serializer.NewAvro[models.Message](cfg)
+	serialization, err := serializer.NewJson[models.Message](cfg)
 	if err != nil {
 		logApp.Error("error serializer create: %v", err)
 		return

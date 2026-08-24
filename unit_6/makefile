@@ -59,12 +59,14 @@ acl: ## Выдать права
 .PHONY: down
 down: ## Остановить кластер
 	@echo "$(YELLOW)=== Stopping cluster ===$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose-app.yml down app
 	@$(DOCKER_COMPOSE) down
 	@echo "$(GREEN)✅ Cluster stopped$(NC)"
 
 .PHONY: clean
 clean: ## Остановить кластер и удалить данные (volumes)
 	@echo "$(YELLOW)=== Cleaning cluster data ===$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose-app.yml down -v app
 	@$(DOCKER_COMPOSE) down -v
 	@echo "$(GREEN)✅ Cluster data cleaned$(NC)"
 
@@ -80,8 +82,8 @@ status: ## Проверить статус контейнеров
 	@echo "$(GREEN)=== Cluster status ===$(NC)"
 	@$(DOCKER_COMPOSE) ps
 
-.PHONY: wait
-wait:
+.PHONY: wait40
+wait40:
 	@echo "$(YELLOW)=== Waiting 40 seconds for Kafka to be ready ===$(NC)"
 	@sleep 40
 	@echo "$(GREEN)✅ Wait complete$(NC)"
@@ -92,28 +94,58 @@ wait10:
 	@sleep 10
 	@echo "$(GREEN)✅ Wait complete$(NC)"
 
-.PHONY: rebuild
-rebuild: ## Пересобрать кластер
-	@$(MAKE) down
-	@$(MAKE) clean
-	@$(MAKE) ssl
-	@$(MAKE) up
-	@$(MAKE) unset-env
+
+.PHONY: up-app
+up-app: ## Запустить go-app
+	@echo "$(GREEN)=== Starting go-app ===$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose-app.yml up -d --no-deps --build app
+	@echo "$(GREEN)✅ go-app started$(NC)"
+	@make status
+
+#.PHONY: nifi-cp-proc
+#nifi-cp-proc: ## скопировать ранее настроенные процессоры в NiFi
+#	@echo "$(GREEN)=== Starting nifi-cp-proc ===$(NC)"
+#	@$(DOCKER_COMPOSE) stop nifi
+#	@$(DOCKER_COMPOSE) rm -f nifi
+#	@docker volume rm -f nifi-conf nifi-state nifi-flowfile_repository nifi-provenance_repository nifi-content_repository nifi-database_repository nifi-nar_extensions nifi-logs nifi-python_extensions 2>/dev/null || true
+#	@$(DOCKER_COMPOSE) up -d nifi
+#	@sleep 5
+#	@docker cp ./nifi/flow.json.gz nifi:/opt/nifi/nifi-current/conf/flow.json.gz
+#	@docker exec --user root nifi chown nifi:nifi /opt/nifi/nifi-current/conf/flow.json.gz
+#	@$(DOCKER_COMPOSE) restart nifi
+#	@echo "$(GREEN)✅ nifi-cp-proc complete$(NC)"
 
 ## Пересобрать все с очисткой
-.PHONY: rebuild-all
-rebuild-all:  ## Пересобрать кластер, создать топики, применить ACL
-	@$(MAKE) down
-	@$(MAKE) clean
-	@$(MAKE) ssl
-	@$(MAKE) up
-	@$(MAKE) wait
-	@$(MAKE) topic
-	@$(MAKE) wait10
-	@$(MAKE) acl
-	@$(MAKE) wait
-	@$(MAKE) schema-reg
-	@$(MAKE) unset-env
-	@$(DOCKER_COMPOSE) up -d --no-deps --build app
+.PHONY: rebuild
+rebuild:  ## Пересобрать кластер, создать топики, применить ACL
+	@make down
+	@make clean
+	@make ssl
+	@make up
+	@make wait40
+	@make topic
+	@make wait10
+	@make acl
+	@make wait40
+	@make schema-reg
+	@make unset-env
+	@make up-app
+
+
+#.PHONY: rebuild-with-nifi-proc
+#rebuild-with-nifi-proc:  ## Пересобрать кластер, создать топики, применить ACL + применить настроенные процессоры NiFi
+#	@make down
+#	@make clean
+#	@make ssl
+#	@make up
+#	@make wait40
+#	@make topic
+#	@make wait10
+#	@make acl
+#	@make wait40
+#	@make schema-reg
+#	@make unset-env
+#	@make nifi-cp-proc
+#	@make up-app
 
 .DEFAULT_GOAL := help
