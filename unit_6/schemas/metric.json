@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "Metric",
+  "description": "Metric data schema for Kafka messages",
+  "properties": {
+    "id": {
+      "type": "integer",
+      "description": "Metric unique identifier",
+      "minimum": 0
+    },
+    "type": {
+      "type": "string",
+      "enum": ["counter"],
+      "description": "Type of metric"
+    },
+    "delta": {
+      "type": ["integer", "null"],
+      "description": "Delta value for counter",
+      "default": null
+    }
+  },
+  "required": ["id", "type"]
+}

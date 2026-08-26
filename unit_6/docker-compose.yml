@@ -1,0 +1,300 @@
+x-kafka:
+  image: &x-kafka-image
+    confluentinc/cp-kafka:8.3.0
+x-kafka_controller:
+  entrypoint: &kafka-controller-entrypoint
+    [ "/bin/bash", "-c", "unset KAFKA_ADVERTISED_LISTENERS; exec /etc/confluent/docker/run" ]
+  env: &kafka_controller-env
+    CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+    
+    KAFKA_HEAP_OPTS: "-Xms512m -Xmx1g"
+    
+    KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-c-1:9093,2@kafka-c-2:9093,3@kafka-c-3:9093"
+    KAFKA_LISTENERS: "CONTROLLER://:9093"
+    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:SSL"
+    KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+    KAFKA_PROCESS_ROLES: "controller"
+    
+    KAFKA_SSL_TRUSTSTORE_TYPE: "JKS"
+    KAFKA_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+    KAFKA_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+    KAFKA_SSL_TRUSTSTORE_FILENAME: "truststore.jks"
+    KAFKA_SSL_TRUSTSTORE_CREDENTIALS: "truststore_creds"
+    
+    KAFKA_SSL_KEYSTORE_TYPE: "PKCS12"
+    KAFKA_SSL_KEYSTORE_FILENAME: "keystore.pkcs12"
+    KAFKA_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+    KAFKA_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+    KAFKA_SSL_KEYSTORE_CREDENTIALS: "keystore_creds"
+    
+    KAFKA_SSL_KEY_PASSWORD: "${CA_PASS}"
+    KAFKA_SSL_KEY_CREDENTIALS: "sslkey_creds"
+    KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
+    KAFKA_SSL_CLIENT_AUTH: "required"
+    
+    # Включаем авторизацию
+    KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
+    KAFKA_SUPER_USERS: "User:CN=admin,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-2,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-3,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-2,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-3,L=Moscow,OU=Practice,O=Yandex,C=RU;"
+    
+x-kafka_broker:
+  env: &kafka-broker-env
+    CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+    KAFKA_HEAP_OPTS: "-Xms512m -Xmx1g"
+    
+    KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-c-1:9093,2@kafka-c-2:9093,3@kafka-c-3:9093"
+    KAFKA_LISTENERS: "EXTERNAL://:9094,SSL://:9093"
+    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "EXTERNAL:SSL,SSL:SSL,CONTROLLER:SSL"
+    KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+    KAFKA_PROCESS_ROLES: "broker"
+    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+    KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    
+    KAFKA_SECURITY_INTER_BROKER_PROTOCOL: "SSL"
+    
+    KAFKA_SSL_TRUSTSTORE_TYPE: "JKS"
+    KAFKA_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+    KAFKA_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+    KAFKA_SSL_TRUSTSTORE_FILENAME: "truststore.jks"
+    KAFKA_SSL_TRUSTSTORE_CREDENTIALS: "truststore_creds"
+    
+    KAFKA_SSL_KEYSTORE_TYPE: "PKCS12"
+    KAFKA_SSL_KEYSTORE_FILENAME: "keystore.pkcs12"
+    KAFKA_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+    KAFKA_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+    KAFKA_SSL_KEYSTORE_CREDENTIALS: "keystore_creds"
+    
+    KAFKA_SSL_KEY_PASSWORD: "${CA_PASS}"
+    KAFKA_SSL_KEY_CREDENTIALS: "sslkey_creds"
+    KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
+    KAFKA_SSL_CLIENT_AUTH: "required"
+    
+    # Включаем авторизацию
+    KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
+    KAFKA_SUPER_USERS: "User:CN=admin,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-2,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-3,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-2,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-3,L=Moscow,OU=Practice,O=Yandex,C=RU;"
+
+services:
+  kafka-c-1:
+    image: *x-kafka-image
+    entrypoint: *kafka-controller-entrypoint
+    container_name: kafka-c-1
+    hostname: kafka-c-1
+    environment:
+      <<: *kafka_controller-env
+      KAFKA_NODE_ID: 1
+    volumes:
+      - kafka-c-1-data:/var/lib/kafka/data
+      - ./mount_dir/kafka-c-1/creds:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    restart: unless-stopped
+
+  kafka-c-2:
+    image: *x-kafka-image
+    entrypoint: *kafka-controller-entrypoint
+    container_name: kafka-c-2
+    hostname: kafka-c-2
+    environment:
+      <<: *kafka_controller-env
+      KAFKA_NODE_ID: 2
+    volumes:
+      - kafka-c-2-data:/var/lib/kafka/data
+      - ./mount_dir/kafka-c-2/creds:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    restart: unless-stopped
+
+  kafka-c-3:
+    image: *x-kafka-image
+    entrypoint: *kafka-controller-entrypoint
+    container_name: kafka-c-3
+    hostname: kafka-c-3
+    environment:
+      <<: *kafka_controller-env
+      KAFKA_NODE_ID: 3
+    volumes:
+      - kafka-c-3-data:/var/lib/kafka/data
+      - ./mount_dir/kafka-c-3/creds:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    restart: unless-stopped
+
+  kafka-b-1:
+    image: *x-kafka-image
+    container_name: kafka-b-1
+    hostname: kafka-b-1
+    environment:
+      <<: *kafka-broker-env
+      KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://127.0.0.1:19094,SSL://kafka-b-1:9093"
+      KAFKA_NODE_ID: 4
+    volumes:
+      - kafka-b-1-data:/var/lib/kafka/data
+      - ./mount_dir/kafka-b-1/creds:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    restart: unless-stopped
+    ports:
+      - "19094:9094"
+
+  kafka-b-2:
+    image: *x-kafka-image
+    container_name: kafka-b-2
+    hostname: kafka-b-2
+    environment:
+      <<: *kafka-broker-env
+      KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://127.0.0.1:29094,SSL://kafka-b-2:9093"
+      KAFKA_NODE_ID: 5
+    volumes:
+      - kafka-b-2-data:/var/lib/kafka/data
+      - ./mount_dir/kafka-b-2/creds:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    restart: unless-stopped
+    ports:
+      - "29094:9094"
+
+  kafka-b-3:
+    image: *x-kafka-image
+    container_name: kafka-b-3
+    hostname: kafka-b-3
+    environment:
+      <<: *kafka-broker-env
+      KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://127.0.0.1:39094,SSL://kafka-b-3:9093"
+      KAFKA_NODE_ID: 6
+    volumes:
+      - kafka-b-3-data:/var/lib/kafka/data
+      - ./mount_dir/kafka-b-3/creds:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    restart: unless-stopped
+    ports:
+      - "39094:9094"
+
+  # Schema Registry
+  schema-registry:
+    image: confluentinc/cp-schema-registry:8.3.0
+    container_name: schema-registry
+    hostname: schema-registry
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_COMPATIBILITY_LEVEL: "FULL"
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093"
+      SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL: "SSL"
+      SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_LOCATION: "/etc/schema-registry/secrets/truststore.jks"
+      SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      SCHEMA_REGISTRY_KAFKASTORE_SSL_KEYSTORE_LOCATION: "/etc/schema-registry/secrets/keystore.pkcs12"
+      SCHEMA_REGISTRY_KAFKASTORE_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      SCHEMA_REGISTRY_KAFKASTORE_SSL_KEY_PASSWORD: "${CA_PASS}"
+      SCHEMA_REGISTRY_LISTENERS: "https://0.0.0.0:8081"
+      SCHEMA_REGISTRY_INTER_INSTANCE_PROTOCOL: "https"
+      SCHEMA_REGISTRY_SSL_KEYSTORE_LOCATION: "/etc/schema-registry/secrets/keystore.pkcs12"
+      SCHEMA_REGISTRY_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      SCHEMA_REGISTRY_SSL_TRUSTSTORE_LOCATION: "/etc/schema-registry/secrets/truststore.jks"
+      SCHEMA_REGISTRY_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      SCHEMA_REGISTRY_SSL_KEY_PASSWORD: "${CA_PASS}"
+      SCHEMA_REGISTRY_SSL_CLIENT_AUTH: true
+    volumes:
+      - ./mount_dir/schema-registry/creds:/etc/schema-registry/secrets
+    ports:
+      - "8081:8081"
+    networks:
+      - kafka-network
+    depends_on:
+      - kafka-b-1
+      - kafka-b-2
+      - kafka-b-3
+    restart: unless-stopped
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS: "kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093"
+      KAFKA_CLUSTERS_0_NAME: "kafka-kraft"
+      DYNAMIC_CONFIG_ENABLED: 'true'
+      
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: "SSL"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_TYPE: "JKS"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_FILENAME: "truststore.jks"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_CREDENTIALS: "truststore_creds"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_TYPE: "PKCS12"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_FILENAME: "keystore.pkcs12"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_CREDENTIALS: "keystore_creds"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEY_PASSWORD: "${CA_PASS}"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEY_CREDENTIALS: "sslkey_creds"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
+      #  Подключение к Schema Registry
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: "https://schema-registry:8081"
+    volumes:
+      - ./mount_dir/kafka-ui/creds:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    restart: unless-stopped
+    depends_on:
+      - kafka-c-1
+      - kafka-c-2
+      - kafka-c-3
+      - kafka-b-1
+      - kafka-b-2
+      - kafka-b-3
+      - schema-registry
+
+  nifi:
+    image: apache/nifi:2.11.0
+    container_name: nifi
+    hostname: nifi
+    environment:
+      # NiFi основные настройки
+      NIFI_WEB_HTTP_PORT: ""
+
+      NIFI_WEB_HTTPS_PORT: 8443
+      NIFI_WEB_HTTPS_HOST: "0.0.0.0"
+      NIFI_CLUSTER_IS_NODE: "false"
+      NIFI_CLUSTER_NODE_PROTOCOL_PORT: 8083
+    volumes:
+      - ./mount_dir/nifi/creds:/opt/nifi/nifi-current/conf/creds
+      - nifi-conf:/opt/nifi/nifi-current/conf
+      - nifi-state:/opt/nifi/nifi-current/state
+      - nifi-flowfile_repository:/opt/nifi/nifi-current/flowfile_repository
+      - nifi-provenance_repository:/opt/nifi/nifi-current/provenance_repository
+      - nifi-content_repository:/opt/nifi/nifi-current/content_repository
+      - nifi-database_repository:/opt/nifi/nifi-current/database_repository
+      - nifi-nar_extensions:/opt/nifi/nifi-current/nar_extensions
+      - nifi-logs:/opt/nifi/nifi-current/logs
+      - nifi-python_extensions:/opt/nifi/nifi-current/python_extensions
+    ports:
+      - "8082:8082"
+      - "8443:8443"
+    networks:
+      - kafka-network
+    depends_on:
+      - kafka-b-1
+      - kafka-b-2
+      - kafka-b-3
+      - schema-registry
+    restart: unless-stopped
+
+volumes:
+  kafka-c-1-data:
+  kafka-c-2-data:
+  kafka-c-3-data:
+  kafka-b-1-data:
+  kafka-b-2-data:
+  kafka-b-3-data:
+  nifi-conf:
+  nifi-state:
+  nifi-flowfile_repository:
+  nifi-provenance_repository:
+  nifi-content_repository:
+  nifi-database_repository:
+  nifi-nar_extensions:
+  nifi-logs:
+  nifi-python_extensions:
+
+networks:
+  kafka-network:
+    driver: bridge
