@@ -28,6 +28,9 @@ func NewProducer[T any](config config.Config, logger *logger.Logger, serializabl
 		"retries":            config.Producer.Retries,
 		"retry.backoff.ms":   config.Producer.RetryBackoffMs,    // Пауза между попытками
 		"enable.idempotence": config.Producer.EnableIdempotence, // Идемпотентность (защита от дублей)
+
+		// Максимальное количество неподтверждённых запросов на отправку сообщений, которые продюсер может одновременно отправить на один брокер (по одному TCP-соединению), не получив ответа от брокера
+		"max.in.flight.requests.per.connection": config.Producer.MaxInFlightRequestsPerConnection,
 		//Определяет, сколько времени клиент (продюсер или консьюмер) будет ждать установки TCP-соединения с брокером:
 		"socket.connection.setup.timeout.ms": config.Producer.SocketConnectionSetupTimeoutMs,
 		// Определяет максимальное время ожидания ответа на уже отправленный запрос по уже установленному соединению:
