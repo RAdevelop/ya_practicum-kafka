@@ -5,7 +5,7 @@ import "github.com/struct0x/envconfig"
 type Config struct {
 	Producer       *producer       `envPrefix:"PRODUCER"`
 	Consumer       *consumer       `envPrefix:"CONSUMER"`
-	Topic          *topic          `envPrefix:"TOPIC"`
+	Topics         *topics         `envPrefix:"TOPIC"`
 	SchemaRegistry *schemaRegistry `envPrefix:"SCHEMA_REGISTRY"`
 }
 
@@ -51,8 +51,8 @@ type consumer struct {
 	SslKeyPassword         string `env:"SSL_KEY_PASSWORD"`
 }
 
-type topic struct {
-	Metric string `env:"METRIC" envDefault:""`
+type topics struct {
+	ShopProducts string `env:"SHOP_PRODUCTS" envDefault:""`
 }
 
 type schemaRegistry struct {

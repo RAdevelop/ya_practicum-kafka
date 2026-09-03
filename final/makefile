@@ -9,7 +9,9 @@ export USER_SCHEMA_REGISTRY := schema-registry
 export USER_SHOP_API := shop-api
 export USER_CLIENT_API := client-api
 
-export TOPIC_NAME := metric
+export TOPIC_SHOP_PRODUCTS := shop_products
+
+
 export COMMAND_CONFIG := /etc/kafka/secrets/admin/admin-client.properties
 export BOOTSTRAP_SERVER := kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093
 

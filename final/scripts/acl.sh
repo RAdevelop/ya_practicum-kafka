@@ -52,60 +52,16 @@ docker exec -it kafka-b-1 kafka-acls \
 --operation Read \
 --topic "*"
 
-############################################################ User producer
+############################################################ User shop-api
 echo "\n"
-echo "${YELLOW}Топик '${TOPIC_NAME}': Доступен как для продюсеров, так и для консьюмеров.${NC}"
-echo "${YELLOW}Дадим producer права на запись в топик:${NC}"
+echo "${YELLOW}Топик '${TOPIC_SHOP_PRODUCTS}': Доступен для ${USER_SHOP_API}.${NC}"
+echo "${YELLOW}Дадим ${USER_SHOP_API} права на запись в топик:${NC}"
 
 docker exec -it kafka-b-1 kafka-acls \
 --command-config ${COMMAND_CONFIG} \
 --bootstrap-server ${BOOTSTRAP_SERVER} \
 --add \
---allow-principal "User:CN=producer,L=Moscow,OU=Practice,O=Yandex,C=RU" \
+--allow-principal "User:CN=${USER_SHOP_API},L=Moscow,OU=Practice,O=Yandex,C=RU" \
 --operation Write \
 --operation Describe \
---topic ${TOPIC_NAME}
-
-
-############################################################ User consumer
-echo "\n"
-echo "${YELLOW}Дадим consumer права на чтение из группы:${NC}"
-docker exec -it kafka-b-1 kafka-acls \
---command-config ${COMMAND_CONFIG} \
---bootstrap-server ${BOOTSTRAP_SERVER} \
---add \
---allow-principal "User:CN=consumer,L=Moscow,OU=Practice,O=Yandex,C=RU" \
---operation Read \
---operation Describe \
---group "*"
-
-echo "${YELLOW}Дадим consumer права на чтение из топика:${NC}"
-docker exec -it kafka-b-1 kafka-acls \
---command-config ${COMMAND_CONFIG} \
---bootstrap-server ${BOOTSTRAP_SERVER} \
---add \
---allow-principal "User:CN=consumer,L=Moscow,OU=Practice,O=Yandex,C=RU" \
---operation Read \
---operation Describe \
---topic ${TOPIC_NAME}
-
-############################################################ User nifi
-echo "${YELLOW}Дадим nifi права на Describe group:${NC}"
-docker exec -it kafka-b-1 kafka-acls \
---command-config ${COMMAND_CONFIG} \
---bootstrap-server ${BOOTSTRAP_SERVER} \
---add \
---allow-principal "User:CN=nifi,L=Moscow,OU=Practice,O=Yandex,C=RU" \
---operation Describe \
---operation Read \
---group "nifi-consumer-group"
-
-echo "${YELLOW}Дадим nifi права Describe,Read на все топики${NC}"
-docker exec -it kafka-b-1 kafka-acls \
---command-config ${COMMAND_CONFIG} \
---bootstrap-server ${BOOTSTRAP_SERVER} \
---add \
---allow-principal "User:CN=nifi,L=Moscow,OU=Practice,O=Yandex,C=RU" \
---operation Describe \
---operation Read \
---topic ${TOPIC_NAME}
+--topic ${TOPIC_SHOP_PRODUCTS}
