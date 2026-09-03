@@ -1,0 +1,332 @@
+[
+  {
+    "product_id": "p001",
+    "name": "Умные часы XYZ Pro",
+    "description": "Умные часы с функцией мониторинга здоровья, GPS и уведомлениями.",
+    "price": {
+      "amount": 4999.99,
+      "currency": "RUB"
+    },
+    "category": "Электроника",
+    "brand": "XYZ",
+    "stock": {
+      "available": 150,
+      "reserved": 20
+    },
+    "sku": "XYZ-P001",
+    "tags": ["умные часы", "гаджеты", "технологии"],
+    "images": [
+      {
+        "url": "https://example.com/images/product1.jpg",
+        "alt": "Умные часы XYZ Pro - вид спереди"
+      }
+    ],
+    "specifications": {
+      "weight": "50g",
+      "dimensions": "42mm x 36mm x 10mm",
+      "battery_life": "24 hours",
+      "water_resistance": "IP68"
+    },
+    "created_at": "2024-01-01T12:00:00Z",
+    "updated_at": "2024-01-10T15:30:00Z",
+    "index": "products",
+    "store_id": "store_001"
+  },
+  {
+    "product_id": "p002",
+    "name": "Наушники SoundMax Pro",
+    "description": "Беспроводные наушники с активным шумоподавлением и высоким качеством звука.",
+    "price": {
+      "amount": 8999.00,
+      "currency": "RUB"
+    },
+    "category": "Электроника",
+    "brand": "SoundMax",
+    "stock": {
+      "available": 80,
+      "reserved": 15
+    },
+    "sku": "SM-P002",
+    "tags": ["наушники", "аудио", "беспроводные"],
+    "images": [
+      {
+        "url": "https://example.com/images/product2.jpg",
+        "alt": "Наушники SoundMax Pro"
+      }
+    ],
+    "specifications": {
+      "weight": "250g",
+      "dimensions": "20cm x 18cm x 8cm",
+      "battery_life": "30 hours",
+      "water_resistance": "IPX4"
+    },
+    "created_at": "2024-01-15T10:00:00Z",
+    "updated_at": "2024-01-20T12:00:00Z",
+    "index": "products",
+    "store_id": "store_001"
+  },
+  {
+    "product_id": "p003",
+    "name": "Фитнес-браслет ActiveBand",
+    "description": "Фитнес-браслет с отслеживанием сна, шагов и частоты сердечных сокращений.",
+    "price": {
+      "amount": 2999.50,
+      "currency": "RUB"
+    },
+    "category": "Электроника",
+    "brand": "ActiveBand",
+    "stock": {
+      "available": 200,
+      "reserved": 30
+    },
+    "sku": "AB-P003",
+    "tags": ["фитнес", "браслет", "здоровье"],
+    "images": [
+      {
+        "url": "https://example.com/images/product3.jpg",
+        "alt": "Фитнес-браслет ActiveBand"
+      }
+    ],
+    "specifications": {
+      "weight": "30g",
+      "dimensions": "20mm x 15mm x 5mm",
+      "battery_life": "7 days",
+      "water_resistance": "IP67"
+    },
+    "created_at": "2024-02-01T09:00:00Z",
+    "updated_at": "2024-02-05T14:00:00Z",
+    "index": "products",
+    "store_id": "store_002"
+  },
+  {
+    "product_id": "p004",
+    "name": "Игровая мышь CyberPro",
+    "description": "Игровая мышь с высокой точностью, RGB-подсветкой и программируемыми кнопками.",
+    "price": {
+      "amount": 3499.00,
+      "currency": "RUB"
+    },
+    "category": "Электроника",
+    "brand": "CyberPro",
+    "stock": {
+      "available": 120,
+      "reserved": 10
+    },
+    "sku": "CP-P004",
+    "tags": ["игровая мышь", "периферия", "гейминг"],
+    "images": [
+      {
+        "url": "https://example.com/images/product4.jpg",
+        "alt": "Игровая мышь CyberPro"
+      }
+    ],
+    "specifications": {
+      "weight": "80g",
+      "dimensions": "12cm x 6cm x 4cm",
+      "battery_life": "N/A",
+      "water_resistance": "N/A"
+    },
+    "created_at": "2024-02-10T11:00:00Z",
+    "updated_at": "2024-02-15T16:00:00Z",
+    "index": "products",
+    "store_id": "store_002"
+  },
+  {
+    "product_id": "p005",
+    "name": "Смартфон Galaxy Ultra",
+    "description": "Смартфон с 6.7-дюймовым AMOLED-экраном, 108MP камерой и 5000 мАч батареей.",
+    "price": {
+      "amount": 59999.00,
+      "currency": "RUB"
+    },
+    "category": "Смартфоны",
+    "brand": "Galaxy",
+    "stock": {
+      "available": 50,
+      "reserved": 25
+    },
+    "sku": "GU-P005",
+    "tags": ["смартфон", "камера", "AMOLED"],
+    "images": [
+      {
+        "url": "https://example.com/images/product5.jpg",
+        "alt": "Смартфон Galaxy Ultra"
+      }
+    ],
+    "specifications": {
+      "weight": "190g",
+      "dimensions": "16cm x 7.5cm x 0.8cm",
+      "battery_life": "up to 2 days",
+      "water_resistance": "IP68"
+    },
+    "created_at": "2024-03-01T08:00:00Z",
+    "updated_at": "2024-03-05T10:00:00Z",
+    "index": "products",
+    "store_id": "store_003"
+  },
+  {
+    "product_id": "p006",
+    "name": "Планшет TabFlex",
+    "description": "Планшет с 10.5-дюймовым экраном, стилусом и клавиатурой в комплекте.",
+    "price": {
+      "amount": 39999.00,
+      "currency": "RUB"
+    },
+    "category": "Электроника",
+    "brand": "TabFlex",
+    "stock": {
+      "available": 35,
+      "reserved": 5
+    },
+    "sku": "TF-P006",
+    "tags": ["планшет", "стилус", "клавиатура"],
+    "images": [
+      {
+        "url": "https://example.com/images/product6.jpg",
+        "alt": "Планшет TabFlex"
+      }
+    ],
+    "specifications": {
+      "weight": "450g",
+      "dimensions": "25cm x 17cm x 0.7cm",
+      "battery_life": "12 hours",
+      "water_resistance": "N/A"
+    },
+    "created_at": "2024-03-10T13:00:00Z",
+    "updated_at": "2024-03-15T09:00:00Z",
+    "index": "products",
+    "store_id": "store_003"
+  },
+  {
+    "product_id": "p007",
+    "name": "Электронная книга ReadEase",
+    "description": "Электронная книга с E-Ink экраном, подсветкой и 32 ГБ памяти.",
+    "price": {
+      "amount": 14999.00,
+      "currency": "RUB"
+    },
+    "category": "Электроника",
+    "brand": "ReadEase",
+    "stock": {
+      "available": 60,
+      "reserved": 8
+    },
+    "sku": "RE-P007",
+    "tags": ["электронная книга", "чтение", "E-Ink"],
+    "images": [
+      {
+        "url": "https://example.com/images/product7.jpg",
+        "alt": "Электронная книга ReadEase"
+      }
+    ],
+    "specifications": {
+      "weight": "170g",
+      "dimensions": "16cm x 11cm x 0.8cm",
+      "battery_life": "weeks",
+      "water_resistance": "N/A"
+    },
+    "created_at": "2024-03-20T14:00:00Z",
+    "updated_at": "2024-03-25T11:00:00Z",
+    "index": "products",
+    "store_id": "store_001"
+  },
+  {
+    "product_id": "p008",
+    "name": "Колонка SoundSphere",
+    "description": "Умная колонка с голосовым управлением и 360-градусным звуком.",
+    "price": {
+      "amount": 7999.00,
+      "currency": "RUB"
+    },
+    "category": "Электроника",
+    "brand": "SoundSphere",
+    "stock": {
+      "available": 45,
+      "reserved": 12
+    },
+    "sku": "SS-P008",
+    "tags": ["колонка", "умная", "звук"],
+    "images": [
+      {
+        "url": "https://example.com/images/product8.jpg",
+        "alt": "Колонка SoundSphere"
+      }
+    ],
+    "specifications": {
+      "weight": "500g",
+      "dimensions": "10cm x 10cm x 20cm",
+      "battery_life": "N/A",
+      "water_resistance": "N/A"
+    },
+    "created_at": "2024-04-01T16:00:00Z",
+    "updated_at": "2024-04-05T13:00:00Z",
+    "index": "products",
+    "store_id": "store_002"
+  },
+  {
+    "product_id": "p009",
+    "name": "Фотоаппарат SnapPro",
+    "description": "Зеркальный фотоаппарат с 24MP матрицей и 4K видео.",
+    "price": {
+      "amount": 45999.00,
+      "currency": "RUB"
+    },
+    "category": "Фото и видео",
+    "brand": "SnapPro",
+    "stock": {
+      "available": 20,
+      "reserved": 3
+    },
+    "sku": "SP-P009",
+    "tags": ["фотоаппарат", "камера", "4K"],
+    "images": [
+      {
+        "url": "https://example.com/images/product9.jpg",
+        "alt": "Фотоаппарат SnapPro"
+      }
+    ],
+    "specifications": {
+      "weight": "700g",
+      "dimensions": "13cm x 9cm x 7cm",
+      "battery_life": "400 shots",
+      "water_resistance": "N/A"
+    },
+    "created_at": "2024-04-10T10:00:00Z",
+    "updated_at": "2024-04-15T12:00:00Z",
+    "index": "products",
+    "store_id": "store_003"
+  },
+  {
+    "product_id": "p010",
+    "name": "Дрон AeroFly",
+    "description": "Дрон с 4K камерой, 30-минутным полетным временем и GPS-навигацией.",
+    "price": {
+      "amount": 29999.00,
+      "currency": "RUB"
+    },
+    "category": "Электроника",
+    "brand": "AeroFly",
+    "stock": {
+      "available": 15,
+      "reserved": 2
+    },
+    "sku": "AF-P010",
+    "tags": ["дрон", "камера", "GPS"],
+    "images": [
+      {
+        "url": "https://example.com/images/product10.jpg",
+        "alt": "Дрон AeroFly"
+      }
+    ],
+    "specifications": {
+      "weight": "800g",
+      "dimensions": "30cm x 30cm x 10cm",
+      "battery_life": "30 minutes",
+      "water_resistance": "N/A"
+    },
+    "created_at": "2024-04-20T09:00:00Z",
+    "updated_at": "2024-04-25T14:00:00Z",
+    "index": "products",
+    "store_id": "store_001"
+  }
+]
