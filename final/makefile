@@ -1,7 +1,9 @@
 # Makefile для управления Kafka кластером
 
-#ENV
-export CA_PASS := kafka123
+ENV_FILE ?= ./build/.env_make
+
+export CRT_ALT_NAMES_IP_2 := 127.0.0.1
+
 # users
 export USER_ADMIN := admin
 export USER_KAFKA_UI := kafka-ui
@@ -9,11 +11,19 @@ export USER_SCHEMA_REGISTRY := schema-registry
 export USER_SHOP_API := shop-api
 export USER_CLIENT_API := client-api
 
-export TOPIC_SHOP_PRODUCTS := shop_products
+export TOPIC_PRODUCTS := products
+export TOPIC_PRODUCTS_BLOCKED := products_blocked
+export TOPIC_PRODUCTS_PUBLISHED := products_published
 
 
 export COMMAND_CONFIG := /etc/kafka/secrets/admin/admin-client.properties
 export BOOTSTRAP_SERVER := kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093
+
+# Загружаем .env глобально через include
+ifneq ($(wildcard $(ENV_FILE)),)
+    include $(ENV_FILE)
+    export
+endif
 
 # Переменные
 DOCKER_COMPOSE = docker-compose

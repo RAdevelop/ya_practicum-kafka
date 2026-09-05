@@ -94,6 +94,8 @@ subjectAltName = @alt_names
 DNS.1 = ${NAME}
 DNS.2 = ${NAME}-external
 DNS.3 = localhost
+IP.1 = 127.0.0.1
+IP.2 = ${CRT_ALT_NAMES_IP_2}
 EOF
 
   # Создадим приватный ключ и запрос на сертификат (CSR)
@@ -150,6 +152,8 @@ EOF
   openssl pkcs12 -in "${DIR_CREDS}/keystore.pkcs12" -out "${DIR_CREDS}/keystore.pem" -nokeys -passin pass:${CA_PASS} -passout pass:${CA_PASS}
 
   openssl pkcs12 -in "${DIR_CREDS}/keystore.pkcs12" -out "${DIR_CREDS}/keystore.key" -nocerts -nodes -passin pass:${CA_PASS}
+
+  openssl pkcs8 -topk8 -inform PEM -in "${DIR_CREDS}/keystore.key" -out "${DIR_CREDS}/keystore.pk8" -nocrypt
 
   # Сохраним пароли
   echo ${CA_PASS} > "${DIR_CREDS}/sslkey_creds"

@@ -54,7 +54,7 @@ docker exec -it kafka-b-1 kafka-acls \
 
 ############################################################ User shop-api
 echo "\n"
-echo "${YELLOW}Топик '${TOPIC_SHOP_PRODUCTS}': Доступен для ${USER_SHOP_API}.${NC}"
+echo "${YELLOW}Топик '${TOPIC_PRODUCTS}': Доступен для ${USER_SHOP_API}.${NC}"
 echo "${YELLOW}Дадим ${USER_SHOP_API} права на запись в топик:${NC}"
 
 docker exec -it kafka-b-1 kafka-acls \
@@ -64,4 +64,4 @@ docker exec -it kafka-b-1 kafka-acls \
 --allow-principal "User:CN=${USER_SHOP_API},L=Moscow,OU=Practice,O=Yandex,C=RU" \
 --operation Write \
 --operation Describe \
---topic ${TOPIC_SHOP_PRODUCTS}
+--topic ${TOPIC_PRODUCTS}

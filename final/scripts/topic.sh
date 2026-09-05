@@ -35,6 +35,6 @@ create_topic() {
 }
 
 
-for t in ${TOPIC_SHOP_PRODUCTS}; do
+for t in ${TOPIC_PRODUCTS} ${TOPIC_PRODUCTS_BLOCKED} ${TOPIC_PRODUCTS_PUBLISHED}; do
   create_topic ${t}
 done

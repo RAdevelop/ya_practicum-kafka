@@ -3,10 +3,12 @@ package config
 import "github.com/struct0x/envconfig"
 
 type Config struct {
-	Producer       *producer       `envPrefix:"PRODUCER"`
-	Consumer       *consumer       `envPrefix:"CONSUMER"`
-	Topics         *topics         `envPrefix:"TOPIC"`
-	SchemaRegistry *schemaRegistry `envPrefix:"SCHEMA_REGISTRY"`
+	BootstrapServers string          `env:"BOOTSTRAP_SERVERS" envDefault:""`
+	Producer         *producer       `envPrefix:"PRODUCER"`
+	Consumer         *consumer       `envPrefix:"CONSUMER"`
+	Topics           *topics         `envPrefix:"TOPIC"`
+	SchemaRegistry   *schemaRegistry `envPrefix:"SCHEMA_REGISTRY"`
+	Shop             *shop           `envPrefix:"SHOP"`
 }
 
 func (c *Config) Load(envFilePath string) {
@@ -17,7 +19,6 @@ func (c *Config) Load(envFilePath string) {
 
 type producer struct {
 	Debug                            string `env:"Debug" envDefault:""`
-	BootstrapServers                 string `env:"BOOTSTRAP_SERVERS" envDefault:""`
 	Acks                             string `env:"ACKS" envDefault:"all"`
 	Retries                          int    `env:"RETRIES" envDefault:"10"`
 	RetryBackoffMs                   int    `env:"RETRY_BACKOFF_MS" envDefault:"100"`
@@ -52,7 +53,9 @@ type consumer struct {
 }
 
 type topics struct {
-	ShopProducts string `env:"SHOP_PRODUCTS" envDefault:""`
+	Products          string `env:"PRODUCTS" envDefault:""`
+	ProductsBlocked   string `env:"PRODUCTS_BLOCKED" envDefault:""`
+	ProductsPublished string `env:"PRODUCTS_PUBLISHED" envDefault:""`
 }
 
 type schemaRegistry struct {
@@ -61,4 +64,10 @@ type schemaRegistry struct {
 	SslCaLocation                  string `env:"SSL_CA_LOCATION"`
 	SslKeyLocation                 string `env:"SSL_KEY_LOCATION"`
 	SslDisableEndpointVerification bool   `env:"SSL_DISABLE_ENDPOINT_VERIFICATION"`
+}
+
+type shop struct {
+	SslCaLocation     string `env:"SSL_CA_LOCATION"`
+	SslCertLocation   string `env:"SSL_CERTIFICATE_LOCATION"`
+	SslCertificatePK8 string `env:"SSL_CERTIFICATE_PK8"`
 }
