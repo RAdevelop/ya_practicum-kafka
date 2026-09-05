@@ -14,6 +14,9 @@ import (
 
 func main() {
 
+	//TODO ctx, cancelApp := context.WithCancel(context.Background())
+	//defer cancelApp()
+
 	appLogger := logger.New("[AppLogger]")
 	var cfg config.Config
 	cfg.Load(".env")
@@ -29,18 +32,40 @@ func main() {
 			appLogger.Error("Failed to close serializer , error: %v", err)
 		}
 	}()
-
 	codecProducts := jsCodec.NewJsonCodec[models.Product](cfg.Topics.Products, serialize)
 
+	// TODO создаем View таблицу для возможности получать данные из постоянного хранилища запрещенных товаров
+	/*
+		BlockedProductsViewLogger := logger.New("[BlockedProductsView]")
+		BlockedProductsView, err := view.NewView(ctx, codecProducts, cfg, BlockedProductsViewLogger)
+		if err != nil {
+			BlockedProductsViewLogger.Error("Failed to create view: %v", err)
+			return
+		}
+	*/
 	productsEmitter, err := emitter.NewProducts(cfg, codecProducts)
 
 	if err != nil {
-		appLogger.Error("Failed to create emitter, error: %v", err)
+		appLogger.Error("Failed to create productsEmitter, error: %v", err)
+		return
 	}
 	defer func() {
 		err := productsEmitter.Finish()
 		if err != nil {
 			appLogger.Error("Failed to close emitter, error: %v", err)
+		}
+	}()
+
+	// создаем эмиттер для добавления запрещенных товаров
+	blockedProductsEmitter, err := emitter.NewProductsBlocked(cfg, codecProducts)
+	if err != nil {
+		appLogger.Error("Failed to create BlockedProductsEmitter: %v", err)
+		return
+	}
+	defer func() {
+		err = blockedProductsEmitter.Finish()
+		if err != nil {
+			appLogger.Error("Failed to finish BlockedProducts Emitter %v", err)
 		}
 	}()
 
