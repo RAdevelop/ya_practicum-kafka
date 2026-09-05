@@ -37,7 +37,7 @@ func NewConsumer[T any](config config.Config, logger *logger.Logger, serializabl
 	*/
 
 	configMap := &kafka.ConfigMap{
-		"bootstrap.servers": config.Consumer.BootstrapServers,
+		"bootstrap.servers": config.BootstrapServers,
 		"group.id":          groupID,
 		/*
 			С какого места консьюмер начнет читать сообщения в партиции, если у него нет закоммиченного смещения (offset)

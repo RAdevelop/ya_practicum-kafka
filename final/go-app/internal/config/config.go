@@ -37,7 +37,6 @@ type producer struct {
 
 type consumer struct {
 	Debug                 string `env:"Debug" envDefault:""`
-	BootstrapServers      string `env:"BOOTSTRAP_SERVERS" envDefault:"kafka-b-1:9093"`
 	GroupId               string `env:"GROUP_ID" envDefault:""`
 	AutoOffsetReset       string `env:"AUTO_OFFSET_RESET" envDefault:"earliest"`
 	EnableAutoCommit      bool   `env:"ENABLE_AUTO_COMMIT" envDefault:"false"`

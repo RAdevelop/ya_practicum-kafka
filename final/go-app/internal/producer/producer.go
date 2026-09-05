@@ -21,7 +21,7 @@ type Producer[T any] struct {
 func NewProducer[T any](config config.Config, logger *logger.Logger, serializable serializer.Serializable[T]) (*Producer[T], error) {
 
 	configMap := &kafka.ConfigMap{
-		"bootstrap.servers": config.Producer.BootstrapServers,
+		"bootstrap.servers": config.BootstrapServers,
 		// Гарантия At Least Once
 		"acks": config.Producer.Acks, // Подтверждение от всех реплик
 		// Количество повторных попыток, которые продюсер сделает, чтобы отправить сообщение, если при первой попытке произошла временная ошибка:
