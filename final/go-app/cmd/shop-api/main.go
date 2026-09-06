@@ -106,6 +106,10 @@ func main() {
 	wg.Add(1)
 	go processorProductsBlocked(ctx, cfg, &wg)
 
+	// процессор для цензуры (проверяет блокировки товаров, пропускает не заблокированные товары дальше)
+	wg.Add(1)
+	go processorCensor(codecProducts, views, ctx, cfg, &wg)
+
 	// Публикуем товары при старте
 	wg.Add(1)
 	go emitProducts(&wg, appLogger, products, productsEmitter)
@@ -164,4 +168,10 @@ func processorProductsBlocked(ctx context.Context, cfg config.Config, wg *sync.W
 	defer wg.Done()
 
 	processor.NewProductsBlocked(cfg).Run(ctx)
+}
+
+func processorCensor(codecProducts *jsCodec.JsonCodec[models.Product], views *api.Views, ctx context.Context, cfg config.Config, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	processor.NewProductsCensor(cfg, views, codecProducts).Run(ctx)
 }

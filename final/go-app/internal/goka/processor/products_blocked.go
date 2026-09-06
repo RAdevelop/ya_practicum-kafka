@@ -30,13 +30,6 @@ func NewProductsBlocked(config config.Config) *ProductsBlocked {
 
 // Run - запуск процесса актуализации списка заблокированных товаров
 func (pb *ProductsBlocked) Run(ctx context.Context) {
-	codecProductsBlocked := new(jsCodec.EncodingJson[*store.ProductsBlockedStore])
-
-	// определяем группу для заблокированных товаров
-	group := goka.DefineGroup(pb.config.Processor.GroupProductsBlocked,
-		goka.Input(goka.Stream(pb.config.Topics.ProductsBlocked), new(codec.String), pb.productsBlockedUpdate),
-		goka.Persist(codecProductsBlocked),
-	)
 
 	// TLS-конфиг
 	tlsConfig, err := cert.LoadTLSConfig(
@@ -87,6 +80,13 @@ func (pb *ProductsBlocked) Run(ctx context.Context) {
 	}
 
 	brokers := strings.Split(pb.config.BootstrapServers, ",")
+	codecProductsBlocked := new(jsCodec.EncodingJson[*store.ProductsBlockedStore])
+
+	// определяем группу для заблокированных товаров
+	group := goka.DefineGroup(pb.config.Processor.GroupProductsBlocked,
+		goka.Input(goka.Stream(pb.config.Topics.ProductsBlocked), new(codec.String), pb.productsBlockedUpdate),
+		goka.Persist(codecProductsBlocked),
+	)
 
 	p, err := goka.NewProcessor(
 		brokers,

@@ -41,3 +41,11 @@ func (p *ProductsBlockedStore) Remove(productName string) {
 		delete(p.Products, productName)
 	}
 }
+
+func (p *ProductsBlockedStore) IsBlocked(productName string) bool {
+	if p == nil || p.Products == nil {
+		return false
+	}
+	_, exists := p.Products[strings.ToLower(strings.TrimSpace(productName))]
+	return exists
+}

@@ -89,4 +89,5 @@ type viewTable struct {
 
 type processor struct {
 	GroupProductsBlocked goka.Group `env:"GROUP_PRODUCTS_BLOCKED" envDefault:"group-products-blocked"`
+	GroupProductsCensor  goka.Group `env:"GROUP_PRODUCTS_CENSOR" envDefault:"group-products-censor"`
 }
