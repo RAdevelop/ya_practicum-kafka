@@ -1,5 +1,10 @@
 # Makefile для управления Kafka кластером
 
+.PHONY: help
+help: ## Показать справку
+	@echo "$(GREEN)Доступные команды:$(NC)"
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(CURDIR)/Makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(YELLOW)  make %-20s$(NC) %s\n", $$1, $$2}'
+
 ENV_FILE ?= ./build/.env_make
 
 export CRT_ALT_NAMES_IP_2 := 127.0.0.1
@@ -37,10 +42,6 @@ GREEN = \033[0;32m
 YELLOW = \033[0;33m
 NC = \033[0m # No Color
 
-.PHONY: help
-help: ## Показать справку
-	@echo "$(GREEN)Доступные команды:$(NC)"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(YELLOW)  make %-20s$(NC) %s\n", $$1, $$2}'
 
 .PHONY: ssl
 ssl: ## Сгенерировать SSL сертификаты
@@ -102,13 +103,13 @@ status: ## Проверить статус контейнеров
 	@$(DOCKER_COMPOSE) ps
 
 .PHONY: wait40
-wait40:
+wait40: ## Подождать 40 секунд для готовности Kafka
 	@echo "$(YELLOW)=== Waiting 40 seconds for Kafka to be ready ===$(NC)"
 	@sleep 40
 	@echo "$(GREEN)✅ Wait complete$(NC)"
 
 .PHONY: wait10
-wait10:
+wait10: ## Подождать 10 секунд для готовности Kafka
 	@echo "$(YELLOW)=== Waiting 10 seconds for Kafka to be ready ===$(NC)"
 	@sleep 10
 	@echo "$(GREEN)✅ Wait complete$(NC)"
@@ -135,7 +136,7 @@ rebuild:  ## Пересобрать кластер, создать топики,
 	@make wait40
 	@make schema-reg
 	@make unset-env
-	#@make up-app
 
+# TODO #@make up-app
 
 .DEFAULT_GOAL := help

@@ -107,16 +107,18 @@ docker exec -it kafka-b-1 kafka-acls \
 --topic ${TOPIC_PRODUCTS_PUBLISHED}
 
 echo "\n"
-echo "${YELLOW}Дадим ${USER_SHOP_API} права на создание топиков:${NC}"
+echo "${YELLOW}Дадим ${USER_SHOP_API} права на работы с топиками групп group-*:${NC}"
 
 docker exec -it kafka-b-1 kafka-acls \
 --command-config ${COMMAND_CONFIG} \
 --bootstrap-server ${BOOTSTRAP_SERVER} \
 --add \
 --allow-principal "User:CN=${USER_SHOP_API},L=Moscow,OU=Practice,O=Yandex,C=RU" \
+--operation Alter \
 --operation Create \
 --operation Read \
 --operation Write \
 --operation Describe \
+--operation DescribeConfigs \
 --topic "group-" \
 --resource-pattern-type PREFIXED
