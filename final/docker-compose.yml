@@ -44,6 +44,7 @@ x-kafka_broker:
     KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-c-1:9093,2@kafka-c-2:9093,3@kafka-c-3:9093"
     KAFKA_LISTENERS: "EXTERNAL://:9094,SSL://:9093"
     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "EXTERNAL:SSL,SSL:SSL,CONTROLLER:SSL"
+    KAFKA_INTER_BROKER_LISTENER_NAME: "SSL"
     KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
     KAFKA_PROCESS_ROLES: "broker"
     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
@@ -124,7 +125,7 @@ services:
     hostname: kafka-b-1
     environment:
       <<: *kafka-broker-env
-      KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://127.0.0.1:19094,SSL://kafka-b-1:9093"
+      KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://${CRT_ALT_NAMES_IP_2}:19094,SSL://kafka-b-1:9093"
       KAFKA_NODE_ID: 4
     volumes:
       - kafka-b-1-data:/var/lib/kafka/data
@@ -141,7 +142,7 @@ services:
     hostname: kafka-b-2
     environment:
       <<: *kafka-broker-env
-      KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://127.0.0.1:29094,SSL://kafka-b-2:9093"
+      KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://${CRT_ALT_NAMES_IP_2}:29094,SSL://kafka-b-2:9093"
       KAFKA_NODE_ID: 5
     volumes:
       - kafka-b-2-data:/var/lib/kafka/data
@@ -158,7 +159,7 @@ services:
     hostname: kafka-b-3
     environment:
       <<: *kafka-broker-env
-      KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://127.0.0.1:39094,SSL://kafka-b-3:9093"
+      KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://${CRT_ALT_NAMES_IP_2}:39094,SSL://kafka-b-3:9093"
       KAFKA_NODE_ID: 6
     volumes:
       - kafka-b-3-data:/var/lib/kafka/data

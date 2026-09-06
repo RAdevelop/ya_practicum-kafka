@@ -1,6 +1,9 @@
 package config
 
-import "github.com/struct0x/envconfig"
+import (
+	"github.com/lovoo/goka"
+	"github.com/struct0x/envconfig"
+)
 
 type Config struct {
 	BootstrapServers string          `env:"BOOTSTRAP_SERVERS" envDefault:""`
@@ -9,12 +12,16 @@ type Config struct {
 	Topics           *topics         `envPrefix:"TOPIC"`
 	SchemaRegistry   *schemaRegistry `envPrefix:"SCHEMA_REGISTRY"`
 	Shop             *shop           `envPrefix:"SHOP"`
+	ViewTable        *viewTable
+	Processor        *processor `envPrefix:"PROCESSOR"`
 }
 
 func (c *Config) Load(envFilePath string) {
 	if err := envconfig.Read(c, envconfig.EnvFileLookup(envFilePath)); err != nil {
 		panic(err)
 	}
+
+	c.ViewTable.ProductsBlocked = goka.Table(c.Processor.GroupProductsBlocked + "-table")
 }
 
 type producer struct {
@@ -69,4 +76,12 @@ type shop struct {
 	SslCaLocation     string `env:"SSL_CA_LOCATION"`
 	SslCertLocation   string `env:"SSL_CERTIFICATE_LOCATION"`
 	SslCertificatePK8 string `env:"SSL_CERTIFICATE_PK8"`
+}
+
+type viewTable struct {
+	ProductsBlocked goka.Table `env:"PRODUCTS_BLOCKED"`
+}
+
+type processor struct {
+	GroupProductsBlocked goka.Group `env:"GROUP_PRODUCTS_BLOCKED" envDefault:"group-products-blocked"`
 }

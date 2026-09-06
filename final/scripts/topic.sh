@@ -5,6 +5,7 @@ NC='\033[0m' # No Color
 
 create_topic() {
   local TOPIC_NAME=$1
+  local PARTITIONS=${2:-3}  # ← если не передано — используем 3
   echo "${YELLOW}Create topic: ${TOPIC_NAME}${NC}"
   #cleanup.policy=compact
   # - delete   - Удаляет старые данные по времени или размеру
@@ -18,7 +19,7 @@ create_topic() {
   --bootstrap-server ${BOOTSTRAP_SERVER} \
   --create \
   --topic ${TOPIC_NAME} \
-  --partitions 3 \
+  --partitions ${PARTITIONS} \
   --replication-factor 3 \
   --config cleanup.policy=delete \
   --config retention.ms=604800000 \
@@ -35,6 +36,8 @@ create_topic() {
 }
 
 
-for t in ${TOPIC_PRODUCTS} ${TOPIC_PRODUCTS_BLOCKED} ${TOPIC_PRODUCTS_PUBLISHED}; do
+for t in ${TOPIC_PRODUCTS} ${TOPIC_PRODUCTS_PUBLISHED}; do
   create_topic ${t}
 done
+
+create_topic ${TOPIC_PRODUCTS_BLOCKED} 1

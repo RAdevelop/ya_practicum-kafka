@@ -1,12 +1,18 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"log"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/config"
 	jsCodec "github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/codec"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/emitter"
+	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/processor"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/logger"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/models"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/serializer"
@@ -14,8 +20,8 @@ import (
 
 func main() {
 
-	//TODO ctx, cancelApp := context.WithCancel(context.Background())
-	//defer cancelApp()
+	ctx, cancelApp := context.WithCancel(context.Background())
+	defer cancelApp()
 
 	appLogger := logger.New("[AppLogger]")
 	var cfg config.Config
@@ -34,7 +40,7 @@ func main() {
 	}()
 	codecProducts := jsCodec.NewJsonCodec[models.Product](cfg.Topics.Products, serialize)
 
-	// TODO создаем View таблицу для возможности получать данные из постоянного хранилища запрещенных товаров
+	// создаем View таблицу для возможности получать данные из постоянного хранилища запрещенных товаров
 	/*
 		BlockedProductsViewLogger := logger.New("[BlockedProductsView]")
 		BlockedProductsView, err := view.NewView(ctx, codecProducts, cfg, BlockedProductsViewLogger)
@@ -80,6 +86,21 @@ func main() {
 
 	// Публикуем товары
 	emitProducts(appLogger, products, productsEmitter)
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	processorProductsBlocked(ctx, cfg, &wg)
+
+	go func() {
+		wait := make(chan os.Signal, 1)
+		signal.Notify(wait, syscall.SIGINT, syscall.SIGTERM)
+		<-wait
+		log.Println("Received shutdown signal, cancelling context...")
+		cancelApp()
+	}()
+
+	wg.Wait()
 }
 
 func emitProducts(logger *logger.Logger, products []models.Product, productsEmitter *emitter.Products) {
@@ -108,4 +129,10 @@ func loadProducts(filePath string) ([]models.Product, error) {
 	}
 
 	return products, nil
+}
+
+func processorProductsBlocked(ctx context.Context, cfg config.Config, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	processor.NewProductsBlocked(cfg).Run(ctx)
 }
