@@ -1,0 +1,155 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/product.schema.json",
+  "title": "Product",
+  "description": "Схема товара для маркетплейса",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "description": "Уникальный идентификатор товара",
+      "pattern": "^p[0-9]{3}$"
+    },
+    "name": {
+      "type": "string",
+      "description": "Название товара",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "description": {
+      "type": "string",
+      "description": "Описание товара",
+      "maxLength": 1000
+    },
+    "price": {
+      "type": "object",
+      "description": "Цена товара",
+      "properties": {
+        "amount": {
+          "type": "number",
+          "description": "Сумма",
+          "minimum": 0
+        },
+        "currency": {
+          "type": "string",
+          "description": "Валюта",
+          "enum": ["RUB", "USD", "EUR"],
+          "default": "RUB"
+        }
+      },
+      "required": ["amount", "currency"]
+    },
+    "category": {
+      "type": "string",
+      "description": "Категория товара"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Бренд товара"
+    },
+    "stock": {
+      "type": "object",
+      "description": "Информация о наличии",
+      "properties": {
+        "available": {
+          "type": "integer",
+          "description": "Доступное количество",
+          "minimum": 0
+        },
+        "reserved": {
+          "type": "integer",
+          "description": "Зарезервированное количество",
+          "minimum": 0
+        }
+      },
+      "required": ["available", "reserved"]
+    },
+    "sku": {
+      "type": "string",
+      "description": "Артикул товара",
+      "pattern": "^[A-Z]{2}-[A-Z0-9]{4,6}$"
+    },
+    "tags": {
+      "type": "array",
+      "description": "Теги товара",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "images": {
+      "type": "array",
+      "description": "Изображения товара",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL изображения",
+            "format": "uri"
+          },
+          "alt": {
+            "type": "string",
+            "description": "Альтернативный текст"
+          }
+        },
+        "required": ["url", "alt"]
+      }
+    },
+    "specifications": {
+      "type": "object",
+      "description": "Характеристики товара",
+      "properties": {
+        "weight": {
+          "type": "string",
+          "description": "Вес"
+        },
+        "dimensions": {
+          "type": "string",
+          "description": "Размеры"
+        },
+        "battery_life": {
+          "type": "string",
+          "description": "Время работы от батареи"
+        },
+        "water_resistance": {
+          "type": "string",
+          "description": "Водонепроницаемость"
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "description": "Дата создания",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "description": "Дата обновления",
+      "format": "date-time"
+    },
+    "index": {
+      "type": "string",
+      "description": "Индекс для поиска",
+      "default": "products"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "Идентификатор магазина",
+      "pattern": "^store_[0-9]{3}$"
+    }
+  },
+  "required": [
+    "product_id",
+    "name",
+    "price",
+    "category",
+    "brand",
+    "stock",
+    "sku",
+    "created_at",
+    "updated_at",
+    "store_id"
+  ],
+  "additionalProperties": false
+}

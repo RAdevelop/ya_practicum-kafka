@@ -10,6 +10,7 @@ type Config struct {
 	Producer         *producer       `envPrefix:"PRODUCER"`
 	Consumer         *consumer       `envPrefix:"CONSUMER"`
 	Topics           *topics         `envPrefix:"TOPIC"`
+	KeyTopic         *keyTopic       `envPrefix:"KEY_TOPIC"`
 	SchemaRegistry   *schemaRegistry `envPrefix:"SCHEMA_REGISTRY"`
 	Shop             *shop           `envPrefix:"SHOP"`
 	ViewTable        *viewTable
@@ -62,6 +63,10 @@ type topics struct {
 	Products          string `env:"PRODUCTS" envDefault:""`
 	ProductsBlocked   string `env:"PRODUCTS_BLOCKED" envDefault:""`
 	ProductsPublished string `env:"PRODUCTS_PUBLISHED" envDefault:""`
+}
+
+type keyTopic struct {
+	ProductsBlocked string `env:"PRODUCTS_BLOCKED" envDefault:"products-blocked"`
 }
 
 type schemaRegistry struct {

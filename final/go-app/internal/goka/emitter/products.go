@@ -1,13 +1,10 @@
 package emitter
 
 import (
-	"crypto/tls"
-	"crypto/x509"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/IBM/sarama"
+	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/cert"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/config"
 	"github.com/lovoo/goka"
 )
@@ -61,7 +58,7 @@ func (em *shop) EmitSync(key string, msg interface{}) error {
 }
 
 func newEmitter(topic string, config config.Config, codec goka.Codec) (*goka.Emitter, error) {
-	tlsConfig, err := loadTLSConfig(config.Shop.SslCaLocation, config.Shop.SslCertLocation, config.Shop.SslCertificatePK8)
+	tlsConfig, err := cert.LoadTLSConfig(config.Shop.SslCaLocation, config.Shop.SslCertLocation, config.Shop.SslCertificatePK8)
 	if err != nil {
 		return nil, err
 	}
@@ -81,26 +78,4 @@ func newEmitter(topic string, config config.Config, codec goka.Codec) (*goka.Emi
 	}
 
 	return emitter, nil
-}
-
-func loadTLSConfig(caFile, certFile, keyFile string) (*tls.Config, error) {
-	caCert, err := os.ReadFile(caFile)
-	if err != nil {
-		return nil, fmt.Errorf("read CA: %w", err)
-	}
-
-	caCertPool := x509.NewCertPool()
-	if !caCertPool.AppendCertsFromPEM(caCert) {
-		return nil, fmt.Errorf("parse CA: %w", err)
-	}
-
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-	if err != nil {
-		return nil, fmt.Errorf("load key pair: %w", err)
-	}
-
-	return &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
-	}, nil
 }

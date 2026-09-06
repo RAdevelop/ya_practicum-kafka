@@ -2,15 +2,12 @@ package processor
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
-	"fmt"
 	"log"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/IBM/sarama"
+	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/cert"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/config"
 	jsCodec "github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/codec"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/store"
@@ -33,7 +30,7 @@ func NewProductsBlocked(config config.Config) *ProductsBlocked {
 
 // Run - запуск процесса актуализации списка заблокированных товаров
 func (pb *ProductsBlocked) Run(ctx context.Context) {
-	codecProductsBlocked := new(jsCodec.JsonCodec[store.ProductsBlockedStore])
+	codecProductsBlocked := new(jsCodec.EncodingJson[*store.ProductsBlockedStore])
 
 	// определяем группу для заблокированных товаров
 	group := goka.DefineGroup(pb.config.Processor.GroupProductsBlocked,
@@ -42,7 +39,7 @@ func (pb *ProductsBlocked) Run(ctx context.Context) {
 	)
 
 	// TLS-конфиг
-	tlsConfig, err := loadTLSConfig(
+	tlsConfig, err := cert.LoadTLSConfig(
 		pb.config.Shop.SslCaLocation,
 		pb.config.Shop.SslCertLocation,
 		pb.config.Shop.SslCertificatePK8,
@@ -86,25 +83,7 @@ func (pb *ProductsBlocked) Run(ctx context.Context) {
 
 	// Создаём TopicManagerBuilder с TLS
 	topicManagerBuilder := func(brokers []string) (goka.TopicManager, error) {
-		if len(brokers) == 0 {
-			return nil, fmt.Errorf("brokers list is empty")
-		}
-		for i, b := range brokers {
-			if strings.TrimSpace(b) == "" {
-				return nil, fmt.Errorf("broker at index %d is empty", i)
-			}
-		}
-
-		tm, err := goka.NewTopicManager(brokers, saramaConfig, topicManagerConfig)
-		if err != nil {
-			log.Printf("❌ NewTopicManager error: %v", err)
-			return nil, err
-		}
-
-		// Важно: попробуй сразу вызвать EnsureTableExists, чтобы проверить, что TM живой
-		// Но осторожно: это может создать топики раньше времени. Для отладки можно.
-		log.Println("✅ TopicManager created successfully")
-		return tm, nil
+		return goka.NewTopicManager(brokers, saramaConfig, topicManagerConfig)
 	}
 
 	brokers := strings.Split(pb.config.BootstrapServers, ",")
@@ -131,48 +110,51 @@ func (pb *ProductsBlocked) Run(ctx context.Context) {
 
 func (pb *ProductsBlocked) productsBlockedUpdate(ctx goka.Context, msg any) {
 
-	productName, ok := msg.(string)
-	if !ok {
-		pb.logger.Error("productsBlocked update: message is not a string: %T", msg)
+	blockEvent, correctType := msg.(string)
+	if !correctType {
+		pb.logger.Error("wrong message type: %T", msg)
 		return
 	}
+
+	parts := strings.Split(blockEvent, ":")
+	if len(parts) != 2 {
+		pb.logger.Error("invalid format: %s", blockEvent)
+		return
+	}
+
+	action := parts[0]
+	productName := parts[1]
+
 	// Нормализуем имя
 	productName = strings.ToLower(strings.TrimSpace(productName))
 	if productName == "" {
 		return
 	}
 
-	var productsBlockedStore store.ProductsBlockedStore
+	// Читаем текущее состояние
+	var productsBlockedStore *store.ProductsBlockedStore
 	if val := ctx.Value(); val != nil {
-		productsBlockedStore, ok = val.(store.ProductsBlockedStore)
+		var ok bool
+		productsBlockedStore, ok = val.(*store.ProductsBlockedStore)
 		if !ok {
 			pb.logger.Error("wrong store type: %T", val)
+			productsBlockedStore = &store.ProductsBlockedStore{}
 		}
+	} else {
+		productsBlockedStore = &store.ProductsBlockedStore{}
 	}
 
-	productsBlockedStore.Add(productName)
+	// Обновляем список
+	switch action {
+	case "add":
+		productsBlockedStore.Add(productName)
+	case "remove":
+		productsBlockedStore.Remove(productName)
+	default:
+		pb.logger.Error("unknown action: %s", action)
+		return
+	}
+
 	ctx.SetValue(productsBlockedStore)
 	pb.logger.Success("productsBlocked updated: %#v", productsBlockedStore)
-}
-
-func loadTLSConfig(caFile, certFile, keyFile string) (*tls.Config, error) {
-	caCert, err := os.ReadFile(caFile)
-	if err != nil {
-		return nil, fmt.Errorf("read CA: %w", err)
-	}
-
-	caCertPool := x509.NewCertPool()
-	if !caCertPool.AppendCertsFromPEM(caCert) {
-		return nil, fmt.Errorf("parse CA: %w", err)
-	}
-
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-	if err != nil {
-		return nil, fmt.Errorf("load key pair: %w", err)
-	}
-
-	return &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
-	}, nil
 }

@@ -9,13 +9,17 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/api"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/config"
 	jsCodec "github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/codec"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/emitter"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/processor"
+	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/store"
+	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/view"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/logger"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/models"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/serializer"
+	"github.com/lovoo/goka/codec"
 )
 
 func main() {
@@ -40,15 +44,15 @@ func main() {
 	}()
 	codecProducts := jsCodec.NewJsonCodec[models.Product](cfg.Topics.Products, serialize)
 
-	// создаем View таблицу для возможности получать данные из постоянного хранилища запрещенных товаров
-	/*
-		BlockedProductsViewLogger := logger.New("[BlockedProductsView]")
-		BlockedProductsView, err := view.NewView(ctx, codecProducts, cfg, BlockedProductsViewLogger)
-		if err != nil {
-			BlockedProductsViewLogger.Error("Failed to create view: %v", err)
-			return
-		}
-	*/
+	// создаем View таблицу для возможности получать данные из постоянного хранилища заблокированных товаров
+	blockedProductsViewLogger := logger.New("[BlockedProductsView]")
+	blockedProductsView, err := view.NewView(ctx, jsCodec.NewEncodingJson[*store.ProductsBlockedStore](), cfg, blockedProductsViewLogger)
+	if err != nil {
+		blockedProductsViewLogger.Error("Failed to create view: %v", err)
+		return
+	}
+
+	// создаем эмиттер для добавления товаров
 	productsEmitter, err := emitter.NewProducts(cfg, codecProducts)
 
 	if err != nil {
@@ -56,14 +60,14 @@ func main() {
 		return
 	}
 	defer func() {
-		err := productsEmitter.Finish()
+		err = productsEmitter.Finish()
 		if err != nil {
-			appLogger.Error("Failed to close emitter, error: %v", err)
+			appLogger.Error("Failed to close productsEmitter, error: %v", err)
 		}
 	}()
 
 	// создаем эмиттер для добавления запрещенных товаров
-	blockedProductsEmitter, err := emitter.NewProductsBlocked(cfg, codecProducts)
+	blockedProductsEmitter, err := emitter.NewProductsBlocked(cfg, new(codec.String))
 	if err != nil {
 		appLogger.Error("Failed to create BlockedProductsEmitter: %v", err)
 		return
@@ -81,16 +85,39 @@ func main() {
 		appLogger.Error("Failed to load products, error: %v", err)
 		return
 	}
-
 	appLogger.Info("Loaded products, count: %d", len(products))
 
-	// Публикуем товары
-	emitProducts(appLogger, products, productsEmitter)
+	emitters := &api.Emitters{
+		ProductsEmitter:        productsEmitter,
+		BlockedProductsEmitter: blockedProductsEmitter,
+	}
+
+	views := &api.Views{
+		BlockedProductsView: blockedProductsView,
+	}
+
+	// http обработчики для возможности добавлять данные в топики
+	handlers := api.NewHandlers(cfg, views, emitters)
+
+	server := api.NewServer(handlers)
 
 	var wg sync.WaitGroup
 
 	wg.Add(1)
-	processorProductsBlocked(ctx, cfg, &wg)
+	go processorProductsBlocked(ctx, cfg, &wg)
+
+	// Публикуем товары при старте
+	wg.Add(1)
+	go emitProducts(&wg, appLogger, products, productsEmitter)
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err = server.Run(ctx)
+		if err != nil {
+			return
+		}
+	}()
 
 	go func() {
 		wait := make(chan os.Signal, 1)
@@ -103,7 +130,9 @@ func main() {
 	wg.Wait()
 }
 
-func emitProducts(logger *logger.Logger, products []models.Product, productsEmitter *emitter.Products) {
+func emitProducts(wg *sync.WaitGroup, logger *logger.Logger, products []models.Product, productsEmitter *emitter.Products) {
+	defer wg.Done()
+
 	for _, product := range products {
 		key := product.ProductId
 		if err := productsEmitter.EmitSync(key, product); err != nil {

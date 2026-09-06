@@ -3,7 +3,10 @@ package view
 import (
 	"context"
 	"strings"
+	"time"
 
+	"github.com/IBM/sarama"
+	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/cert"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/config"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/logger"
 	"github.com/lovoo/goka"
@@ -13,11 +16,48 @@ import (
 // Это чтобы можно было в методах обработчиках получать доступ, например, к значению карты запрещенных товаров, что сохраняем в персистентной таблице
 func NewView(ctx context.Context, codec goka.Codec, config config.Config, logger *logger.Logger) (*goka.View, error) {
 
+	// TLS-конфиг
+	tlsConfig, err := cert.LoadTLSConfig(
+		config.Shop.SslCaLocation,
+		config.Shop.SslCertLocation,
+		config.Shop.SslCertificatePK8,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	saramaConfig := sarama.NewConfig()
+	saramaConfig.Net.TLS.Enable = true
+	saramaConfig.Net.TLS.Config = tlsConfig
+	saramaConfig.Consumer.Return.Errors = true
+	saramaConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
+
+	saramaConsumerBuilder := goka.SaramaConsumerBuilderWithConfig(saramaConfig)
+
+	topicManagerConfig := goka.NewTopicManagerConfig()
+	topicManagerConfig.Table.Replication = 3
+	topicManagerConfig.Table.CleanupPolicy = "compact"
+
+	topicManagerConfig.Stream.Replication = 3
+	topicManagerConfig.Stream.Retention = 7 * 24 * time.Hour
+	topicManagerConfig.Stream.CleanupPolicy = "delete"
+
+	topicManagerConfig.CreateTopicTimeout = 10 * time.Second
+	topicManagerConfig.MismatchBehavior = goka.TMConfigMismatchBehaviorWarn
+	topicManagerConfig.NoCreate = false
+
+	// Создаём TopicManagerBuilder с TLS
+	topicManagerBuilder := func(brokers []string) (goka.TopicManager, error) {
+		return goka.NewTopicManager(brokers, saramaConfig, topicManagerConfig)
+	}
+
 	brokers := strings.Split(config.BootstrapServers, ",")
 	view, err := goka.NewView(
 		brokers,
 		config.ViewTable.ProductsBlocked,
 		codec,
+		goka.WithViewTopicManagerBuilder(topicManagerBuilder),
+		goka.WithViewConsumerSaramaBuilder(saramaConsumerBuilder),
 	)
 	if err != nil {
 		return nil, err
