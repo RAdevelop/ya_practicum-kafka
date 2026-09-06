@@ -140,9 +140,6 @@ func (c *ProductsCensor) processCensForProducts(ctx goka.Context, msg any) {
 	}
 
 	// Применяем цензуру
-
-	//TODO del
-	c.logger.Info("productsBlockedStoreStore.IsBlocked(product.Name): %#v", productsBlockedStoreStore.IsBlocked(product.Name))
 	if productsBlockedStoreStore.IsBlocked(product.Name) {
 		c.logger.Error("product is blocked by name: %s", product.Name)
 		return
