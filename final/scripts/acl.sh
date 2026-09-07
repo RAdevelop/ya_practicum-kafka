@@ -99,3 +99,45 @@ docker exec -it kafka2-b-1 kafka-acls \
 --operation Read \
 --operation Describe \
 --topic ${TOPIC_RECOMMENDATIONS}
+
+
+################################################################## kafka-connect
+echo "\n"
+echo "${YELLOW}Дадим ${USER_KAFKA_CONNECT} права на первом кластере на чтение ${TOPIC_PRODUCTS_PUBLISHED}:${NC}"
+docker exec -it kafka-b-1 kafka-acls \
+--command-config ${COMMAND_CONFIG} \
+--bootstrap-server ${BOOTSTRAP_SERVER} \
+--add --allow-principal "User:CN=${USER_KAFKA_CONNECT},L=Moscow,OU=Practice,O=Yandex,C=RU" \
+--operation READ \
+--operation DESCRIBE \
+--topic ${TOPIC_PRODUCTS_PUBLISHED}
+
+
+# Права на внутренние топики Connect
+docker exec -it kafka-b-1 kafka-acls \
+--command-config ${COMMAND_CONFIG} \
+--bootstrap-server ${BOOTSTRAP_SERVER} \
+--add --allow-principal "User:CN=${USER_KAFKA_CONNECT},L=Moscow,OU=Practice,O=Yandex,C=RU" \
+--operation READ \
+--operation WRITE \
+--operation CREATE \
+--operation DESCRIBE \
+--topic "connect-" \
+--resource-pattern-type PREFIXED
+
+docker exec -it kafka-b-1 kafka-acls \
+--command-config ${COMMAND_CONFIG} \
+--bootstrap-server ${BOOTSTRAP_SERVER} \
+--add --allow-principal "User:CN=${USER_KAFKA_CONNECT},L=Moscow,OU=Practice,O=Yandex,C=RU" \
+--operation READ \
+--operation DESCRIBE \
+--group "connect-" \
+--resource-pattern-type PREFIXED
+
+docker exec -it kafka-b-1 kafka-acls \
+--command-config ${COMMAND_CONFIG} \
+--bootstrap-server ${BOOTSTRAP_SERVER} \
+--add --allow-principal "User:CN=${USER_KAFKA_CONNECT},L=Moscow,OU=Practice,O=Yandex,C=RU" \
+--operation READ \
+--operation DESCRIBE \
+--group connect-file-sink-products

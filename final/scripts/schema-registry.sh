@@ -34,8 +34,6 @@ curl -X POST https://localhost:8081/subjects/products-value/versions \
 -H "Content-Type: application/vnd.schemaregistry.v1+json" \
 -d "{\"schema\": ${SCHEMA}, \"schemaType\": \"JSON\"}"
 
-
-
 echo "\n"
 echo "${YELLOW}Проверка регистрации схемы 'products-value'${NC}"
 curl -X GET https://localhost:8081/subjects \
@@ -47,6 +45,32 @@ curl -X GET https://localhost:8081/subjects \
 echo "\n"
 echo "${YELLOW}Получить все версии схемы 'products-value'${NC}"
 curl -X GET https://localhost:8081/subjects/products-value/versions \
+--cacert ${CACERT} \
+--cert ${CERT} \
+--key ${KEY} \
+-H "Content-Type: application/vnd.schemaregistry.v1+json"
+
+echo "\n"
+
+echo "${YELLOW}Регистрируем схемы 'products_published-value'${NC}"
+curl -X POST https://localhost:8081/subjects/products_published-value/versions \
+--cacert ${CACERT} \
+--cert ${CERT} \
+--key ${KEY} \
+-H "Content-Type: application/vnd.schemaregistry.v1+json" \
+-d "{\"schema\": ${SCHEMA}, \"schemaType\": \"JSON\"}"
+
+echo "\n"
+echo "${YELLOW}Проверка регистрации схемы 'products_published-value'${NC}"
+curl -X GET https://localhost:8081/subjects \
+--cacert ${CACERT} \
+--cert ${CERT} \
+--key ${KEY} \
+-H "Content-Type: application/vnd.schemaregistry.v1+json"
+
+echo "\n"
+echo "${YELLOW}Получить все версии схемы 'products_published-value'${NC}"
+curl -X GET https://localhost:8081/subjects/products_published-value/versions \
 --cacert ${CACERT} \
 --cert ${CERT} \
 --key ${KEY} \

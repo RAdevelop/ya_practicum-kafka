@@ -17,6 +17,7 @@ export USER_SHOP_API := shop-api
 export USER_CLIENT_API := client-api
 export USER_MIRROR_MAKER := mirror-maker
 export USER_SPARK := spark
+export USER_KAFKA_CONNECT := kafka-connect
 
 export TOPIC_PRODUCTS := products
 export TOPIC_PRODUCTS_BLOCKED := products_blocked
@@ -40,12 +41,31 @@ SSL_SCRIPT = ./scripts/certs.sh
 TOPIC_SCRIPT = ./scripts/topic.sh
 ACL_SCRIPT = ./scripts/acl.sh
 SCHEMA_REG_SCRIPT = ./scripts/schema-registry.sh
+KAFKA_CONNECT_SCRIPT = ./scripts/kafka-connect.sh
 
 # Цвета для вывода
 GREEN = \033[0;32m
 YELLOW = \033[0;33m
 NC = \033[0m # No Color
 
+#имя контейнера
+name ?=
+
+.PHONY: restart-name
+restart-name: ## Перезапустить указанный контейнер name=имя_контейнера
+	@$(DOCKER_COMPOSE) restart ${name}
+
+.PHONY: rebuild-name
+rebuild-name: ## Пересобрать указанный контейнер name=имя_контейнера
+	@$(DOCKER_COMPOSE) down ${name}
+	@$(DOCKER_COMPOSE) down -v ${name}
+	@$(DOCKER_COMPOSE) up -d --no-deps --build ${name}
+
+.PHONY: kafka-connect
+kafka-connect: ## Добавить коннекторы в KAFKA-CONNECT
+	@echo "$(GREEN)=== Add connectors ===$(NC)"
+	@sh $(KAFKA_CONNECT_SCRIPT)
+	@echo "$(GREEN)✅ Add connectors finished$(NC)"
 
 .PHONY: ssl
 ssl: ## Сгенерировать SSL сертификаты
@@ -130,6 +150,7 @@ rebuild:  ## Пересобрать кластер, создать топики,
 	@make acl
 	@make wait60
 	@make schema-reg
+	@make kafka-connect
 
 # TODO #@make up-app
 

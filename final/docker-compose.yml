@@ -345,14 +345,14 @@ services:
     environment:
       LOG4J_LOGGERS: "org.apache.kafka=DEBUG,org.apache.kafka.connect.mirror=DEBUG"
 
-      # ✅ Внутренние топики храним в ЦЕЛЕВОМ кластере (второй)
+      # Внутренние топики храним в ЦЕЛЕВОМ кластере (второй)
       CONNECT_BOOTSTRAP_SERVERS: "kafka2-b-1:9093,kafka2-b-2:9093,kafka2-b-3:9093"
       CONNECT_GROUP_ID: "mirror-maker-connect"
       CONNECT_CONFIG_STORAGE_TOPIC: "mirror-maker-configs"
       CONNECT_OFFSET_STORAGE_TOPIC: "mirror-maker-offsets"
       CONNECT_STATUS_STORAGE_TOPIC: "mirror-maker-status"
 
-      # ✅ Дополнительные настройки для безопасности
+      # Дополнительные настройки для безопасности
       CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 3
       CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 3
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 3
@@ -369,6 +369,72 @@ services:
       - kafka2-b-1
       - kafka2-b-2
       - kafka2-b-3
+    restart: unless-stopped
+
+  kafka-connect:
+    image: confluentinc/cp-kafka-connect:8.3.0
+    container_name: kafka-connect
+    hostname: kafka-connect
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: "kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093"
+      CONNECT_GROUP_ID: "connect-file-sink"
+      CONNECT_CONFIG_STORAGE_TOPIC: "connect-configs"
+      CONNECT_OFFSET_STORAGE_TOPIC: "connect-offsets"
+      CONNECT_STATUS_STORAGE_TOPIC: "connect-status"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+      CONNECT_VALUE_CONVERTER: "io.confluent.connect.json.JsonSchemaConverter"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: "https://schema-registry:8081"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_KEY_PASSWORD: "${CA_PASS}"
+      CONNECT_PLUGIN_PATH: "/usr/share/java/,/usr/share/confluent-hub-components/,/usr/share/filestream-connectors/"
+      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+
+      # SSL
+      CONNECT_SECURITY_PROTOCOL: "SSL"
+      CONNECT_SSL_TRUSTSTORE_TYPE: "JKS"
+      CONNECT_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+      CONNECT_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_SSL_KEYSTORE_TYPE: "PKCS12"
+      CONNECT_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      CONNECT_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_SSL_KEY_PASSWORD: "${CA_PASS}"
+      CONNECT_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
+
+      # REST API
+      CONNECT_REST_ADVERTISED_HOST_NAME: "kafka-connect"
+      CONNECT_LISTENERS: "https://:8083"
+      CONNECT_REST_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      CONNECT_REST_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_REST_SSL_KEY_PASSWORD: "${CA_PASS}"
+
+      # Consumer SSL (наследуется task-коннекторами)
+      CONNECT_CONSUMER_SECURITY_PROTOCOL: "SSL"
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_TYPE: "JKS"
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_CONSUMER_SSL_KEYSTORE_TYPE: "PKCS12"
+      CONNECT_CONSUMER_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      CONNECT_CONSUMER_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_CONSUMER_SSL_KEY_PASSWORD: "${CA_PASS}"
+      CONNECT_CONSUMER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
+    volumes:
+      - ./mount_dir/kafka-connect/creds:/etc/kafka/secrets
+      - ./mount_dir/kafka-connect/output:/var/lib/kafka-connect-data
+    ports:
+      - "8083:8083"
+    networks:
+      - kafka-network
+    depends_on:
+      - kafka-b-1
+      - kafka-b-2
+      - kafka-b-3
     restart: unless-stopped
 
   # Schema Registry
@@ -394,6 +460,7 @@ services:
       SCHEMA_REGISTRY_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
       SCHEMA_REGISTRY_SSL_KEY_PASSWORD: "${CA_PASS}"
       SCHEMA_REGISTRY_SSL_CLIENT_AUTH: true
+      SCHEMA_REGISTRY_KAFKASTORE_TIMEOUT_MS: "10000"
     volumes:
       - ./mount_dir/schema-registry/creds:/etc/schema-registry/secrets
     ports:

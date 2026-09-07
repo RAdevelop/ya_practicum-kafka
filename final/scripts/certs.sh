@@ -176,7 +176,7 @@ EOF
 
 
 # users:
-for u in ${USER_ADMIN} ${USER_KAFKA_UI} ${USER_SCHEMA_REGISTRY} ${USER_SHOP_API} ${USER_CLIENT_API} ${USER_MIRROR_MAKER} ${USER_SPARK}; do
+for u in ${USER_ADMIN} ${USER_KAFKA_UI} ${USER_SCHEMA_REGISTRY} ${USER_SHOP_API} ${USER_CLIENT_API} ${USER_MIRROR_MAKER} ${USER_SPARK} ${USER_KAFKA_CONNECT}; do
   create_cert ${u}
 done
 
@@ -203,6 +203,10 @@ for i in 1 2 3; do
   cp -r "${TMP_DIR}/${USER_ADMIN}/creds/" "${TMP_DIR}/kafka2-b-${i}/creds/${USER_ADMIN}/"
 
 done
+
+# для записи данных в файл
+mkdir -p ${TMP_DIR}/${USER_KAFKA_CONNECT}/output
+chmod -R 777 ${TMP_DIR}/${USER_KAFKA_CONNECT}/output
 
 #for go-app
 for u in ${USER_SCHEMA_REGISTRY} ${USER_SHOP_API} ${USER_CLIENT_API}; do
