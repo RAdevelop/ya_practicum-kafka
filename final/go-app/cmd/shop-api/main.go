@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/api"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/config"
@@ -23,7 +24,6 @@ import (
 )
 
 func main() {
-
 	ctx, cancelApp := context.WithCancel(context.Background())
 	defer cancelApp()
 
@@ -31,20 +31,72 @@ func main() {
 	var cfg config.Config
 	cfg.Load(".env")
 
+	// 1. Инициализация кодека
 	serialize, err := serializer.NewJson[models.Product](cfg)
 	if err != nil {
-		appLogger.Error("Failed to create json serializer , error: %v", err)
+		appLogger.Error("Failed to create json serializer: %v", err)
 		return
 	}
 	defer func() {
-		err = serialize.Close()
-		if err != nil {
-			appLogger.Error("Failed to close serializer , error: %v", err)
+		if err := serialize.Close(); err != nil {
+			appLogger.Error("Failed to close serializer: %v", err)
 		}
 	}()
 	codecProducts := jsCodec.NewJsonCodec[models.Product](cfg.Topics.Products, serialize)
 
-	// создаем View таблицу для возможности получать данные из постоянного хранилища заблокированных товаров
+	// 2. Создание эмиттеров (они не требуют готовности топиков)
+	productsEmitter, err := emitter.NewProducts(cfg, codecProducts)
+	if err != nil {
+		appLogger.Error("Failed to create productsEmitter: %v", err)
+		return
+	}
+	defer func() {
+		if err := productsEmitter.Finish(); err != nil {
+			appLogger.Error("Failed to close productsEmitter: %v", err)
+		}
+	}()
+
+	blockedProductsEmitter, err := emitter.NewProductsBlocked(cfg, new(codec.String))
+	if err != nil {
+		appLogger.Error("Failed to create BlockedProductsEmitter: %v", err)
+		return
+	}
+	defer func() {
+		if err := blockedProductsEmitter.Finish(); err != nil {
+			appLogger.Error("Failed to finish BlockedProductsEmitter: %v", err)
+		}
+	}()
+
+	emitters := &api.Emitters{
+		ProductsEmitter:        productsEmitter,
+		BlockedProductsEmitter: blockedProductsEmitter,
+	}
+
+	// 3. Запуск процессоров с сигналами готовности
+	var wg sync.WaitGroup
+
+	// 3.1. Запускаем ProductsBlocked (создаёт топик group-products-blocked-table)
+	blockedProcessorReady := make(chan struct{})
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		pb := processor.NewProductsBlocked(cfg, blockedProcessorReady)
+		pb.Run(ctx)
+	}()
+
+	// Ждём, пока ProductsBlocked создаст топик
+	select {
+	case <-blockedProcessorReady:
+		appLogger.Info("ProductsBlocked processor is ready (topic created)")
+	case <-time.After(30 * time.Second):
+		appLogger.Error("Timeout waiting for ProductsBlocked processor")
+		return
+	case <-ctx.Done():
+		appLogger.Error("context cancelled while waiting for ProductsBlocked")
+		return
+	}
+
+	// 4. Создание View (теперь топик существует)
 	blockedProductsViewLogger := logger.New("[BlockedProductsView]")
 	blockedProductsView, err := view.NewView(ctx, jsCodec.NewEncodingJson[*store.ProductsBlockedStore](), cfg, blockedProductsViewLogger)
 	if err != nil {
@@ -52,77 +104,67 @@ func main() {
 		return
 	}
 
-	// создаем эмиттер для добавления товаров
-	productsEmitter, err := emitter.NewProducts(cfg, codecProducts)
-
-	if err != nil {
-		appLogger.Error("Failed to create productsEmitter, error: %v", err)
+	// Ждём, пока View загрузит данные
+	select {
+	case <-blockedProductsView.WaitRunning():
+		appLogger.Info("BlockedProductsView is ready")
+	case <-time.After(30 * time.Second):
+		appLogger.Error("Timeout waiting for BlockedProductsView")
 		return
-	}
-	defer func() {
-		err = productsEmitter.Finish()
-		if err != nil {
-			appLogger.Error("Failed to close productsEmitter, error: %v", err)
-		}
-	}()
-
-	// создаем эмиттер для добавления запрещенных товаров
-	blockedProductsEmitter, err := emitter.NewProductsBlocked(cfg, new(codec.String))
-	if err != nil {
-		appLogger.Error("Failed to create BlockedProductsEmitter: %v", err)
+	case <-ctx.Done():
+		appLogger.Error("Context cancelled while waiting for BlockedProductsView")
 		return
-	}
-	defer func() {
-		err = blockedProductsEmitter.Finish()
-		if err != nil {
-			appLogger.Error("Failed to finish BlockedProducts Emitter %v", err)
-		}
-	}()
-
-	// Читаем товары из файла
-	products, err := loadProducts("data/shop-products.json")
-	if err != nil {
-		appLogger.Error("Failed to load products, error: %v", err)
-		return
-	}
-	appLogger.Info("Loaded products, count: %d", len(products))
-
-	emitters := &api.Emitters{
-		ProductsEmitter:        productsEmitter,
-		BlockedProductsEmitter: blockedProductsEmitter,
 	}
 
 	views := &api.Views{
 		BlockedProductsView: blockedProductsView,
 	}
 
-	// http обработчики для возможности добавлять данные в топики
+	// 5. Запуск цензора (зависит от View)
+	censorReady := make(chan struct{})
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		pc := processor.NewProductsCensor(cfg, views, codecProducts, censorReady)
+		pc.Run(ctx)
+	}()
+
+	// Ждём, пока цензор будет готов (опционально)
+	select {
+	case <-censorReady:
+		appLogger.Info("ProductsCensor processor is ready")
+	case <-time.After(30 * time.Second):
+		appLogger.Error("Timeout waiting for ProductsCensor processor")
+		return
+	case <-ctx.Done():
+		appLogger.Error("Context cancelled while waiting for ProductsCensor")
+		return
+	}
+
+	// 6. Запуск HTTP-сервера
 	handlers := api.NewHandlers(cfg, views, emitters)
-
 	server := api.NewServer(handlers)
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go processorProductsBlocked(ctx, cfg, &wg)
-
-	// процессор для цензуры (проверяет блокировки товаров, пропускает не заблокированные товары дальше)
-	wg.Add(1)
-	go processorCensor(codecProducts, views, ctx, cfg, &wg)
-
-	// Публикуем товары при старте
-	wg.Add(1)
-	go emitProducts(&wg, appLogger, products, productsEmitter)
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err = server.Run(ctx)
-		if err != nil {
-			return
+		if err := server.Run(ctx); err != nil {
+			appLogger.Error("Server error: %v", err)
 		}
 	}()
 
+	// 7. Публикация товаров (после готовности всех процессоров)
+	products, err := loadProducts("data/shop-products.json")
+	if err != nil {
+		appLogger.Error("Failed to load products: %v", err)
+		return
+	}
+	appLogger.Info("Loaded products, count: %d", len(products))
+
+	wg.Add(1)
+	go emitProducts(&wg, appLogger, products, productsEmitter)
+
+	// 8. Ожидание сигналов завершения
 	go func() {
 		wait := make(chan os.Signal, 1)
 		signal.Notify(wait, syscall.SIGINT, syscall.SIGTERM)
@@ -162,16 +204,4 @@ func loadProducts(filePath string) ([]models.Product, error) {
 	}
 
 	return products, nil
-}
-
-func processorProductsBlocked(ctx context.Context, cfg config.Config, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	processor.NewProductsBlocked(cfg).Run(ctx)
-}
-
-func processorCensor(codecProducts *jsCodec.JsonCodec[models.Product], views *api.Views, ctx context.Context, cfg config.Config, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	processor.NewProductsCensor(cfg, views, codecProducts).Run(ctx)
 }

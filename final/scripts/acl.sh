@@ -3,54 +3,6 @@
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 
-############################################################ User schema-registry
-echo "${YELLOW}Дадим ${USER_SCHEMA_REGISTRY} права на группу 'schema-registry' ${NC}"
-docker exec -it kafka-b-1 kafka-acls \
---command-config ${COMMAND_CONFIG} \
---bootstrap-server ${BOOTSTRAP_SERVER} \
---add \
---allow-principal "User:CN=${USER_SCHEMA_REGISTRY},L=Moscow,OU=Practice,O=Yandex,C=RU" \
---operation All \
---group "schema-registry"
-
-echo "${YELLOW}Дадим ${USER_SCHEMA_REGISTRY} права на топик '_schemas'${NC}"
-docker exec -it kafka-b-1 kafka-acls \
---command-config ${COMMAND_CONFIG} \
---bootstrap-server ${BOOTSTRAP_SERVER} \
---add \
---allow-principal "User:CN=${USER_SCHEMA_REGISTRY},L=Moscow,OU=Practice,O=Yandex,C=RU" \
---operation All \
---topic "_schemas"
-
-############################################################ User kafka-ui
-echo "${YELLOW}Дадим ${USER_KAFKA_UI} права на Describe cluster${NC}"
-docker exec -it kafka-b-1 kafka-acls \
---command-config ${COMMAND_CONFIG} \
---bootstrap-server ${BOOTSTRAP_SERVER} \
---add \
---allow-principal "User:CN=${USER_KAFKA_UI},L=Moscow,OU=Practice,O=Yandex,C=RU" \
---operation Describe \
---cluster
-
-echo "${YELLOW}Дадим ${USER_KAFKA_UI} права на Describe group${NC}"
-docker exec -it kafka-b-1 kafka-acls \
---command-config ${COMMAND_CONFIG} \
---bootstrap-server ${BOOTSTRAP_SERVER} \
---add \
---allow-principal "User:CN=${USER_KAFKA_UI},L=Moscow,OU=Practice,O=Yandex,C=RU" \
---operation Describe \
---operation Read \
---group "*"
-
-echo "${YELLOW}Дадим Kafka-UI права Describe,Read на все топики${NC}"
-docker exec -it kafka-b-1 kafka-acls \
---command-config ${COMMAND_CONFIG} \
---bootstrap-server ${BOOTSTRAP_SERVER} \
---add \
---allow-principal "User:CN=kafka-ui,L=Moscow,OU=Practice,O=Yandex,C=RU" \
---operation Describe \
---operation Read \
---topic "*"
 
 ############################################################ User shop-api
 
@@ -122,3 +74,28 @@ docker exec -it kafka-b-1 kafka-acls \
 --operation DescribeConfigs \
 --topic "group-" \
 --resource-pattern-type PREFIXED
+
+########################################################################## FOR MIRROR
+
+echo "\n"
+echo "${YELLOW}2й кластер - Дадим ${USER_SPARK} права на работы с топиками:${NC}"
+docker exec -it kafka2-b-1 kafka-acls \
+--command-config ${COMMAND_CONFIG} \
+--bootstrap-server ${BOOTSTRAP_SERVER2} \
+--allow-principal "User:CN=${USER_SPARK},L=Moscow,OU=Practice,O=Yandex,C=RU" \
+--add \
+--operation Read \
+--operation Describe \
+--topic ${TOPIC_PRODUCTS}
+
+echo "\n"
+echo "${YELLOW}2й кластер - Дадим ${USER_SPARK} права на работы с топиками:${NC}"
+docker exec -it kafka2-b-1 kafka-acls \
+--command-config ${COMMAND_CONFIG} \
+--bootstrap-server ${BOOTSTRAP_SERVER2} \
+--allow-principal "User:CN=${USER_SPARK},L=Moscow,OU=Practice,O=Yandex,C=RU" \
+--add \
+--operation Write \
+--operation Read \
+--operation Describe \
+--topic ${TOPIC_RECOMMENDATIONS}

@@ -19,12 +19,14 @@ import (
 type ProductsBlocked struct {
 	logger *logger.Logger
 	config config.Config
+	ready  chan struct{}
 }
 
-func NewProductsBlocked(config config.Config) *ProductsBlocked {
+func NewProductsBlocked(config config.Config, ready chan struct{}) *ProductsBlocked {
 	return &ProductsBlocked{
 		logger: logger.New("[ProductsBlockedProcessor]"),
 		config: config,
+		ready:  ready,
 	}
 }
 
@@ -39,6 +41,10 @@ func (pb *ProductsBlocked) Run(ctx context.Context) {
 	)
 	if err != nil {
 		pb.logger.Error("Failed to load TLS config: %v", err)
+		// закрываем канал при ошибке, чтобы main не висел
+		if pb.ready != nil {
+			close(pb.ready)
+		}
 		return
 	}
 
@@ -101,6 +107,12 @@ func (pb *ProductsBlocked) Run(ctx context.Context) {
 		return
 	}
 	defer p.Stop()
+
+	// Сигнализируем о готовности ПОСЛЕ создания процессора (топик создан)
+	if pb.ready != nil {
+		close(pb.ready)
+		pb.logger.Info("ProductsBlocked processor is ready (topic created)")
+	}
 
 	pb.logger.Info("Starting processor...")
 	if err = p.Run(ctx); err != nil {

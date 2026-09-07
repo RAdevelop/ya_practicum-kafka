@@ -22,14 +22,16 @@ type ProductsCensor struct {
 	config        config.Config
 	views         *api.Views
 	codecProducts *jsCodec.JsonCodec[models.Product]
+	ready         chan struct{}
 }
 
-func NewProductsCensor(config config.Config, views *api.Views, codecProducts *jsCodec.JsonCodec[models.Product]) *ProductsCensor {
+func NewProductsCensor(config config.Config, views *api.Views, codecProducts *jsCodec.JsonCodec[models.Product], ready chan struct{}) *ProductsCensor {
 	return &ProductsCensor{
 		logger:        logger.New("[ProcessorProductsCensor]"),
 		config:        config,
 		views:         views,
 		codecProducts: codecProducts,
+		ready:         ready,
 	}
 }
 
@@ -44,6 +46,10 @@ func (c *ProductsCensor) Run(ctx context.Context) {
 	)
 	if err != nil {
 		c.logger.Error("Failed to load TLS config: %v", err)
+		// Если ошибка — закрываем канал, чтобы main не висел вечно.
+		if c.ready != nil {
+			close(c.ready)
+		}
 		return
 	}
 
@@ -105,6 +111,12 @@ func (c *ProductsCensor) Run(ctx context.Context) {
 	}
 	defer p.Stop()
 
+	// Сигнализируем о готовности ПОСЛЕ создания процессора
+	if c.ready != nil {
+		close(c.ready)
+		c.logger.Info("ProductsCensor processor is ready")
+	}
+
 	c.logger.Info("Starting processor...")
 	if err = p.Run(ctx); err != nil {
 		c.logger.Info("Processor error: %v", err)
@@ -113,7 +125,6 @@ func (c *ProductsCensor) Run(ctx context.Context) {
 
 // processCensForProducts - фильтруем товары, не пускам заблокированные
 func (c *ProductsCensor) processCensForProducts(ctx goka.Context, msg any) {
-
 	product, ok := msg.(models.Product)
 	if !ok {
 		c.logger.Error("wrong product type: %T\n", msg)
@@ -129,11 +140,16 @@ func (c *ProductsCensor) processCensForProducts(ctx goka.Context, msg any) {
 		return
 	}
 
+	if blockedProducts == nil {
+		c.logger.Info("No blocked products found, product is allowed: %s", product.Name)
+		ctx.Emit(goka.Stream(c.config.Topics.ProductsPublished), product.ProductId, product)
+		return
+	}
+
 	var productsBlockedStoreStore *store.ProductsBlockedStore
 	productsBlockedStoreStore, ok = blockedProducts.(*store.ProductsBlockedStore)
 	if !ok {
 		c.logger.Error("can't get productsBlockedStoreStore")
-
 		c.logger.Success("product has been published: %s", product.Name)
 		ctx.Emit(goka.Stream(c.config.Topics.ProductsPublished), product.ProductId, product)
 		return
@@ -142,6 +158,7 @@ func (c *ProductsCensor) processCensForProducts(ctx goka.Context, msg any) {
 	// Применяем цензуру
 	if productsBlockedStoreStore.IsBlocked(product.Name) {
 		c.logger.Error("product is blocked by name: %s", product.Name)
+		// TODO: отправить в DLQ топик заблокированных товаров
 		return
 	}
 

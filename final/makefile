@@ -15,14 +15,18 @@ export USER_KAFKA_UI := kafka-ui
 export USER_SCHEMA_REGISTRY := schema-registry
 export USER_SHOP_API := shop-api
 export USER_CLIENT_API := client-api
+export USER_MIRROR_MAKER := mirror-maker
+export USER_SPARK := spark
 
 export TOPIC_PRODUCTS := products
 export TOPIC_PRODUCTS_BLOCKED := products_blocked
 export TOPIC_PRODUCTS_PUBLISHED := products_published
+export TOPIC_RECOMMENDATIONS := recommendations
 
 
 export COMMAND_CONFIG := /etc/kafka/secrets/admin/admin-client.properties
 export BOOTSTRAP_SERVER := kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093
+export BOOTSTRAP_SERVER2 := kafka2-b-1:9093,kafka2-b-2:9093,kafka2-b-3:9093
 
 # Загружаем .env глобально через include
 ifneq ($(wildcard $(ENV_FILE)),)
@@ -48,15 +52,6 @@ ssl: ## Сгенерировать SSL сертификаты
 	@echo "$(GREEN)=== Generating SSL certificates ===$(NC)"
 	@sh $(SSL_SCRIPT)
 	@echo "$(GREEN)✅ SSL certificates generated successfully$(NC)"
-
-
-.PHONY: unset-env
-unset-env: ## Удалить ENV переменные для скриптов
-	@echo "$(GREEN)=== Cleaning environment ===$(NC)"
-	@for var in CA_PASS TOPIC_NAME COMMAND_CONFIG BOOTSTRAP_SERVER; do \
-		unset $$var; \
-	done
-	@echo "$(GREEN)✅ Environment cleaned$(NC)"
 
 .PHONY: schema-reg
 schema-reg: ## Регистрация схем в schema-registry
@@ -93,7 +88,7 @@ clean: ## Остановить кластер и удалить данные (vo
 .PHONY: up
 up: ## Запустить кластер
 	@echo "$(GREEN)=== Starting cluster ===$(NC)"
-	@$(DOCKER_COMPOSE) up -d
+	@$(DOCKER_COMPOSE) up -d --build
 	@echo "$(GREEN)✅ Cluster started$(NC)"
 	@make status
 
@@ -102,10 +97,10 @@ status: ## Проверить статус контейнеров
 	@echo "$(GREEN)=== Cluster status ===$(NC)"
 	@$(DOCKER_COMPOSE) ps
 
-.PHONY: wait40
-wait40: ## Подождать 40 секунд для готовности Kafka
-	@echo "$(YELLOW)=== Waiting 40 seconds for Kafka to be ready ===$(NC)"
-	@sleep 40
+.PHONY: wait60
+wait60: ## Подождать 40 секунд для готовности Kafka
+	@echo "$(YELLOW)=== Waiting 60 seconds for Kafka to be ready ===$(NC)"
+	@sleep 60
 	@echo "$(GREEN)✅ Wait complete$(NC)"
 
 .PHONY: wait10
@@ -129,13 +124,12 @@ rebuild:  ## Пересобрать кластер, создать топики,
 	@make clean
 	@make ssl
 	@make up
-	@make wait40
+	@make wait60
 	@make topic
 	@make wait10
 	@make acl
-	@make wait40
+	@make wait60
 	@make schema-reg
-	@make unset-env
 
 # TODO #@make up-app
 

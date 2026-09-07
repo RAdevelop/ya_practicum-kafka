@@ -176,7 +176,7 @@ EOF
 
 
 # users:
-for u in ${USER_ADMIN} ${USER_KAFKA_UI} ${USER_SCHEMA_REGISTRY} ${USER_SHOP_API} ${USER_CLIENT_API}; do
+for u in ${USER_ADMIN} ${USER_KAFKA_UI} ${USER_SCHEMA_REGISTRY} ${USER_SHOP_API} ${USER_CLIENT_API} ${USER_MIRROR_MAKER} ${USER_SPARK}; do
   create_cert ${u}
 done
 
@@ -184,14 +184,23 @@ for i in 1 2 3; do
 
   ##### контроллеры
   create_cert "kafka-c-${i}"
+  create_cert "kafka2-c-${i}"
 
   mkdir -p "${TMP_DIR}/kafka-c-${i}/creds/${USER_ADMIN}"
   cp -r "${TMP_DIR}/${USER_ADMIN}/creds/" "${TMP_DIR}/kafka-c-${i}/creds/${USER_ADMIN}/"
 
+  mkdir -p "${TMP_DIR}/kafka2-c-${i}/creds/${USER_ADMIN}"
+  cp -r "${TMP_DIR}/${USER_ADMIN}/creds/" "${TMP_DIR}/kafka2-c-${i}/creds/${USER_ADMIN}/"
+
   ##### брокеры
   create_cert "kafka-b-${i}"
+  create_cert "kafka2-b-${i}"
+
   mkdir -p "${TMP_DIR}/kafka-b-${i}/creds/${USER_ADMIN}"
   cp -r "${TMP_DIR}/${USER_ADMIN}/creds/" "${TMP_DIR}/kafka-b-${i}/creds/${USER_ADMIN}/"
+
+  mkdir -p "${TMP_DIR}/kafka2-b-${i}/creds/${USER_ADMIN}"
+  cp -r "${TMP_DIR}/${USER_ADMIN}/creds/" "${TMP_DIR}/kafka2-b-${i}/creds/${USER_ADMIN}/"
 
 done
 
@@ -203,6 +212,80 @@ for u in ${USER_SCHEMA_REGISTRY} ${USER_SHOP_API} ${USER_CLIENT_API}; do
   cp -r "${TMP_DIR}/${u}/creds/" ${GO_APP_DIR}
 done
 
+MIRROR_MAKER_DIR="${TMP_DIR}/${USER_MIRROR_MAKER}/config"
+mkdir -p ${MIRROR_MAKER_DIR}
+cat > "${MIRROR_MAKER_DIR}/mirror-maker.properties" << EOF
+# ─── Исключения ───
+topics.exclude = __.*|.*[\-\.]internal|.*[\-\.]._replica|_schemas
+
+
+# ─── Кластеры ───
+clusters = kafka, kafka2
+
+kafka.bootstrap.servers = kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093
+kafka2.bootstrap.servers = kafka2-b-1:9093,kafka2-b-2:9093,kafka2-b-3:9093
+
+# ─── SSL для исходного кластера (kafka) ───
+kafka.security.protocol = SSL
+kafka.ssl.truststore.type = JKS
+kafka.ssl.truststore.location = /etc/kafka/secrets/source/truststore.jks
+kafka.ssl.truststore.password = ${CA_PASS}
+kafka.ssl.keystore.type = PKCS12
+kafka.ssl.keystore.location = /etc/kafka/secrets/source/keystore.pkcs12
+kafka.ssl.keystore.password = ${CA_PASS}
+kafka.ssl.key.password = ${CA_PASS}
+kafka.ssl.endpoint.identification.algorithm = https
+
+# ─── SSL для целевого кластера (kafka2) ───
+kafka2.security.protocol = SSL
+kafka2.ssl.truststore.type = JKS
+kafka2.ssl.truststore.location = /etc/kafka/secrets/target/truststore.jks
+kafka2.ssl.truststore.password = ${CA_PASS}
+kafka2.ssl.keystore.type = PKCS12
+kafka2.ssl.keystore.location = /etc/kafka/secrets/target/keystore.pkcs12
+kafka2.ssl.keystore.password = ${CA_PASS}
+kafka2.ssl.key.password = ${CA_PASS}
+kafka2.ssl.endpoint.identification.algorithm = https
+
+# ─── Репликация kafka → kafka2 ───
+kafka->kafka2.enabled = true
+kafka->kafka2.topics = .*
+kafka->kafka2.groups = .*
+kafka->kafka2.sync.group.offsets.enabled = true
+kafka->kafka2.emit.checkpoints.enabled = true
+kafka->kafka2.emit.heartbeats.enabled = true
+
+# ─── Репликация kafka2 → kafka (если нужна двусторонняя) ───
+# kafka2->kafka.enabled = true
+# kafka2->kafka.topics = .*
+# kafka2->kafka.groups = .*
+# kafka2->kafka.sync.group.offsets.enabled = true
+# kafka2->kafka.emit.checkpoints.enabled = true
+# kafka2->kafka.emit.heartbeats.enabled = true
+
+# ─── Фактор репликации внутренних топиков ───
+replication.factor=3
+checkpoints.topic.replication.factor = 3
+heartbeats.topic.replication.factor = 3
+offset-syncs.topic.replication.factor = 3
+offset.storage.replication.factor = 3
+config.storage.replication.factor = 3
+status.storage.replication.factor = 3
+
+# ─── Синхронизация метаданных ───
+sync.topic.acls.enabled = true
+sync.topic.configs.enabled = true
+refresh.topics.enabled=true
+refresh.groups.enabled = true
+refresh.topics.interval.seconds = 60
+refresh.groups.interval.seconds = 60
+
+# ─── Политика именования реплицированных топиков ───
+# По умолчанию топики получат префикс: kafka.my-topic → kafka2
+# Если нужны одинаковые имена — раскомментируйте:
+replication.policy.class = org.apache.kafka.connect.mirror.IdentityReplicationPolicy
+
+EOF
 
 ############
 rm -rf ${MOUNT_DIR}/*
