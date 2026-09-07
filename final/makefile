@@ -117,10 +117,10 @@ status: ## Проверить статус контейнеров
 	@echo "$(GREEN)=== Cluster status ===$(NC)"
 	@$(DOCKER_COMPOSE) ps
 
-.PHONY: wait60
-wait60: ## Подождать 40 секунд для готовности Kafka
-	@echo "$(YELLOW)=== Waiting 60 seconds for Kafka to be ready ===$(NC)"
-	@sleep 60
+.PHONY: wait70
+wait70: ## Подождать 40 секунд для готовности Kafka
+	@echo "$(YELLOW)=== Waiting 70 seconds for Kafka to be ready ===$(NC)"
+	@sleep 70
 	@echo "$(GREEN)✅ Wait complete$(NC)"
 
 .PHONY: wait10
@@ -144,12 +144,13 @@ rebuild:  ## Пересобрать кластер, создать топики,
 	@make clean
 	@make ssl
 	@make up
-	@make wait60
+	@make wait70
 	@make topic
 	@make wait10
 	@make acl
-	@make wait60
+	@make wait70
 	@make schema-reg
+	@make wait10
 	@make kafka-connect
 
 # TODO #@make up-app

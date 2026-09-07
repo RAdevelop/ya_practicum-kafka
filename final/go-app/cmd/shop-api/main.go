@@ -44,7 +44,8 @@ func main() {
 	}()
 	codecProducts := jsCodec.NewJsonCodec[models.Product](cfg.Topics.Products, serialize)
 
-	// 2. Создание эмиттеров (они не требуют готовности топиков)
+	// 2. Создание эмиттеров
+	// эмиттер отправка не фильтрованных товаров в Кафка
 	productsEmitter, err := emitter.NewProducts(cfg, codecProducts)
 	if err != nil {
 		appLogger.Error("Failed to create productsEmitter: %v", err)
@@ -56,6 +57,7 @@ func main() {
 		}
 	}()
 
+	// эмиттер блокировки товаров по имени
 	blockedProductsEmitter, err := emitter.NewProductsBlocked(cfg, new(codec.String))
 	if err != nil {
 		appLogger.Error("Failed to create BlockedProductsEmitter: %v", err)
@@ -157,12 +159,11 @@ func main() {
 	products, err := loadProducts("data/shop-products.json")
 	if err != nil {
 		appLogger.Error("Failed to load products: %v", err)
-		return
 	}
 	appLogger.Info("Loaded products, count: %d", len(products))
 
 	wg.Add(1)
-	go emitProducts(&wg, appLogger, products, productsEmitter)
+	go emitProducts(&wg, appLogger, products, emitters, cfg)
 
 	// 8. Ожидание сигналов завершения
 	go func() {
@@ -176,12 +177,23 @@ func main() {
 	wg.Wait()
 }
 
-func emitProducts(wg *sync.WaitGroup, logger *logger.Logger, products []models.Product, productsEmitter *emitter.Products) {
+func emitProducts(wg *sync.WaitGroup, logger *logger.Logger, products []models.Product, emitters *api.Emitters, config config.Config) {
 	defer wg.Done()
+
+	if len(products) == 0 {
+		return
+	}
+
+	// добавим для примера в заблокированные товары первый товар из списка:
+	event := "add:" + products[0].Name
+	err := emitters.BlockedProductsEmitter.EmitSync(config.KeyTopic.ProductsBlocked, event)
+	if err != nil {
+		logger.Error("Failed to emit block product for event: %s, err: %v", event, err)
+	}
 
 	for _, product := range products {
 		key := product.ProductId
-		if err := productsEmitter.EmitSync(key, product); err != nil {
+		if err := emitters.ProductsEmitter.EmitSync(key, product); err != nil {
 			logger.Error("Failed to emit product %s: %v, %s: %s", "error", err, "product_id", product.ProductId)
 			continue
 		}
