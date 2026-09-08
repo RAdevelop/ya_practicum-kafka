@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Установку ${CA_PASS} см в makefile
-
 MOUNT_DIR="./mount_dir"
 TMP_DIR="./tmp_dir"
 CA_FILE="${TMP_DIR}/ca.cnf"
@@ -170,6 +168,10 @@ ssl.keystore.password=${CA_PASS}
 ssl.keystore.type=PKCS12
 ssl.key.password=${CA_PASS}
 ssl.endpoint.identification.algorithm=https
+# Короткие таймауты для скриптов ожидания и создания топиков
+request.timeout.ms=10000
+default.api.timeout.ms=15000
+
 EOF
 }
 

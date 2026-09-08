@@ -1,0 +1,81 @@
+services:
+  spark-master:
+    image: apache/spark:3.5.0
+    container_name: spark-master
+    hostname: spark-master
+    user: root
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+      - SPARK_MASTER_HOST=spark-master
+      - HADOOP_CONF_DIR=/etc/hadoop/conf
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    volumes:
+      - ./mount_dir/hadoop/configs:/etc/hadoop/conf
+      - ./mount_dir/kafka-connect/creds:/etc/kafka/secrets
+    ports:
+      - "8090:8080"
+      - "7077:7077"
+    networks:
+      - kafka-network
+#    depends_on:
+#      - hdfs-namenode
+#      - hdfs-datanode
+    restart: unless-stopped
+
+  spark-worker:
+    image: apache/spark:3.5.0
+    container_name: spark-worker
+    hostname: spark-worker
+    user: root
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+      - SPARK_WORKER_MEMORY=2g
+      - SPARK_WORKER_CORES=1
+      - HADOOP_CONF_DIR=/etc/hadoop/conf
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    volumes:
+      - ./mount_dir/hadoop/configs:/etc/hadoop/conf
+      - ./mount_dir/kafka-connect/creds:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    depends_on:
+      - spark-master
+    restart: unless-stopped
+
+  spark-job:
+    image: apache/spark:3.5.0
+    container_name: spark-job
+    user: root
+    environment:
+      - HADOOP_CONF_DIR=/etc/hadoop/conf
+    volumes:
+      - ./mount_dir/hadoop/configs:/etc/hadoop/conf
+      - ./mount_dir/spark/apps:/opt/spark/apps
+      - ./mount_dir/kafka-connect/creds:/etc/kafka/secrets
+      - spark-ivy-cache:/root/.ivy2
+    command: >
+      bash -c "
+        echo 'Waiting for Spark Master...' &&
+        sleep 15 &&
+        while true; do
+          echo '=== Running analytics job ===' &&
+          /opt/spark/bin/spark-submit --master spark://spark-master:7077 --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 /opt/spark/apps/analytics.py &&
+          echo '=== Job finished. Sleeping 120s ===' &&
+          sleep 120;
+        done
+      "
+    networks:
+      - kafka-network
+    depends_on:
+      - spark-master
+      - spark-worker
+#      - hdfs-namenode
+#      - hdfs-datanode
+    restart: unless-stopped
+
+volumes:
+  spark-ivy-cache:
+
+networks:
+  kafka-network:
+    driver: bridge

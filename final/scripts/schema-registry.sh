@@ -9,71 +9,84 @@ KEY="./mount_dir/schema-registry/creds/keystore.key"
 
 SCHEMAS_DIR="./schemas"
 
-#echo "${YELLOW}Регистрируем схемы 'products-value'${NC}"
-#curl -X POST https://localhost:8081/subjects/products-value/versions \
-#--cacert ${CACERT} \
-#--cert ${CERT} \
-#--key ${KEY} \
-#-H "Content-Type: application/vnd.schemaregistry.v1+json" \
-#-d "{\"schema\": $(cat ${SCHEMAS_DIR}/products.avsc | jq -c @json),\"schemaType\": \"AVRO\"}"
-
-#curl -X DELETE https://localhost:8081/subjects/products-value \
-#--cacert ${CACERT} \
-#--cert ${CERT} \
-#--key ${KEY} \
-#-H "Content-Type: application/vnd.schemaregistry.v1+json"
-
-
 SCHEMA=$(cat ${SCHEMAS_DIR}/products.json | jq -c | jq -R)
 
+
+
+start_time=$SECONDS
+max_seconds=700
+i=0
+ready=false
+echo "${YELLOW}Waiting for Schema Registry (max ${max_seconds} seconds)...${NC}"
+while (( SECONDS - start_time < max_seconds )); do
+  ((i++))
+  if curl -sk \
+      --cacert "$CACERT" \
+      --cert "$CERT" \
+      --key "$KEY" \
+      https://localhost:8081/subjects >/dev/null 2>&1; then
+    echo "Schema Registry is ready!"
+    ready=true
+    break
+  fi
+  echo "  [$i] Not ready yet... (elapsed: $((SECONDS - start_time))s)"
+  sleep 5
+done
+
+if [[ "$ready" != "true" ]]; then
+  echo "ERROR: Schema Registry did not start within 5 minutes!"
+  exit 1
+fi
+
+
 echo "${YELLOW}Регистрируем схемы 'products-value'${NC}"
-curl -X POST https://localhost:8081/subjects/products-value/versions \
+curl -s -X POST https://localhost:8081/subjects/products-value/versions \
 --cacert ${CACERT} \
 --cert ${CERT} \
 --key ${KEY} \
 -H "Content-Type: application/vnd.schemaregistry.v1+json" \
 -d "{\"schema\": ${SCHEMA}, \"schemaType\": \"JSON\"}"
 
-echo "\n"
+printf "\n"
 echo "${YELLOW}Проверка регистрации схемы 'products-value'${NC}"
-curl -X GET https://localhost:8081/subjects \
+curl -s -X GET https://localhost:8081/subjects \
 --cacert ${CACERT} \
 --cert ${CERT} \
 --key ${KEY} \
 -H "Content-Type: application/vnd.schemaregistry.v1+json"
 
-echo "\n"
+printf "\n"
 echo "${YELLOW}Получить все версии схемы 'products-value'${NC}"
-curl -X GET https://localhost:8081/subjects/products-value/versions \
+curl -s -X GET https://localhost:8081/subjects/products-value/versions \
 --cacert ${CACERT} \
 --cert ${CERT} \
 --key ${KEY} \
 -H "Content-Type: application/vnd.schemaregistry.v1+json"
 
-echo "\n"
+printf "\n"
 
 echo "${YELLOW}Регистрируем схемы 'products_published-value'${NC}"
-curl -X POST https://localhost:8081/subjects/products_published-value/versions \
+curl -s -X POST https://localhost:8081/subjects/products_published-value/versions \
 --cacert ${CACERT} \
 --cert ${CERT} \
 --key ${KEY} \
 -H "Content-Type: application/vnd.schemaregistry.v1+json" \
 -d "{\"schema\": ${SCHEMA}, \"schemaType\": \"JSON\"}"
 
-echo "\n"
+printf "\n"
 echo "${YELLOW}Проверка регистрации схемы 'products_published-value'${NC}"
-curl -X GET https://localhost:8081/subjects \
+curl -s -X GET https://localhost:8081/subjects \
 --cacert ${CACERT} \
 --cert ${CERT} \
 --key ${KEY} \
 -H "Content-Type: application/vnd.schemaregistry.v1+json"
 
-echo "\n"
+printf "\n"
 echo "${YELLOW}Получить все версии схемы 'products_published-value'${NC}"
-curl -X GET https://localhost:8081/subjects/products_published-value/versions \
+curl -s -X GET https://localhost:8081/subjects/products_published-value/versions \
 --cacert ${CACERT} \
 --cert ${CERT} \
 --key ${KEY} \
 -H "Content-Type: application/vnd.schemaregistry.v1+json"
 
-echo "\n"
+printf "\n"

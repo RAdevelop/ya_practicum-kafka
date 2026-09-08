@@ -4,9 +4,12 @@ NC='\033[0m' # No Color
 
 
 create_topic() {
-  local TOPIC_NAME=$1
-  local PARTITIONS=${2:-3}  # ← если не передано — используем 3
+  local BROKER=$1
+  local SERVER=$2
+  local TOPIC_NAME=$3
+  local PARTITIONS=${4:-3}  # ← если не передано — используем 3
   echo "${YELLOW}Create topic: ${TOPIC_NAME}${NC}"
+  echo "${YELLOW}On BROKER: ${BROKER} and SERVER: ${SERVER}${NC}"
   #cleanup.policy=compact
   # - delete   - Удаляет старые данные по времени или размеру
   # - compact  - Сохраняет только последнее значение для каждого ключа
@@ -14,9 +17,9 @@ create_topic() {
   # retention.ms=604800000 - Время хранения данных в топике в миллисекундах (7 дней)
   # segment.bytes=536870912 - Максимальный размер файла сегмента лога в байтах (512 МБ)
   # min.insync.replicas=3 - минимальное число реплик (в синхронном состоянии), которые должны подтвердить получение сообщения для выполнения успешной записи
-  docker exec -it kafka-b-1 kafka-topics \
+  docker exec -it ${BROKER} kafka-topics \
   --command-config ${COMMAND_CONFIG} \
-  --bootstrap-server ${BOOTSTRAP_SERVER} \
+  --bootstrap-server ${SERVER} \
   --create \
   --topic ${TOPIC_NAME} \
   --partitions ${PARTITIONS} \
@@ -35,46 +38,15 @@ create_topic() {
   --topic ${TOPIC_NAME}
 }
 
-create_topic2() {
-  local TOPIC_NAME=$1
-  local PARTITIONS=${2:-3}  # ← если не передано — используем 3
-  echo "${YELLOW}2й кластер - Create topic: ${TOPIC_NAME}${NC}"
-#cleanup.policy=compact
-# - delete   - Удаляет старые данные по времени или размеру
-# - compact  - Сохраняет только последнее значение для каждого ключа
-# - compact,delete - Сначала compact, потом удаляет (delete) по времени
-# retention.ms=604800000 - Время хранения данных в топике в миллисекундах (7 дней)
-# segment.bytes=536870912 - Максимальный размер файла сегмента лога в байтах (512 МБ)
-# min.insync.replicas=3 - минимальное число реплик (в синхронном состоянии), которые должны подтвердить получение сообщения для выполнения успешной записи
-# docker exec -it kafka2-b-1 kafka-topics \
-# --command-config ${COMMAND_CONFIG} \
-# --bootstrap-server ${BOOTSTRAP_SERVER2} \
-# --create \
-# --topic ${TOPIC_NAME} \
-# --partitions ${PARTITIONS} \
-# --replication-factor 3 \
-# --config cleanup.policy=delete \
-# --config retention.ms=604800000 \
-# --config segment.bytes=536870912 \
-# --config min.insync.replicas=3
+for t in ${TOPIC_PRODUCTS} ${TOPIC_PRODUCTS_PUBLISHED} ${TOPIC_RECOMMENDATIONS}; do
+  create_topic "kafka-b-1" ${BOOTSTRAP_SERVER} ${t} 3
+done
 
-  echo "\n"
-  echo "${YELLOW}2й кластер - Describe topic: ${TOPIC_NAME}${NC}"
-  docker exec -it kafka2-b-1 kafka-topics \
-  --command-config ${COMMAND_CONFIG} \
-  --bootstrap-server ${BOOTSTRAP_SERVER2} \
-  --describe \
-  --topic ${TOPIC_NAME}
-}
+create_topic "kafka-b-1" ${BOOTSTRAP_SERVER} ${TOPIC_PRODUCTS_BLOCKED} 1
 
 
 for t in ${TOPIC_PRODUCTS} ${TOPIC_PRODUCTS_PUBLISHED} ${TOPIC_RECOMMENDATIONS}; do
-  create_topic ${t}
+  create_topic "kafka2-b-1" ${BOOTSTRAP_SERVER2} ${t} 3
 done
 
-create_topic ${TOPIC_PRODUCTS_BLOCKED} 1
-
-
-for t in ${TOPIC_PRODUCTS} ${TOPIC_PRODUCTS_PUBLISHED} ${TOPIC_RECOMMENDATIONS}; do
-  create_topic2 ${t}
-done
+create_topic "kafka2-b-1" ${BOOTSTRAP_SERVER2} ${TOPIC_PRODUCTS_BLOCKED} 1

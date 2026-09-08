@@ -1,0 +1,283 @@
+# docker-compose.apps.yml
+services:
+  schema-registry:
+    image: confluentinc/cp-schema-registry:8.3.0
+    container_name: schema-registry
+    hostname: schema-registry
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_COMPATIBILITY_LEVEL: "FULL"
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093"
+      SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL: "SSL"
+      SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_LOCATION: "/etc/schema-registry/secrets/truststore.jks"
+      SCHEMA_REGISTRY_KAFKASTORE_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      SCHEMA_REGISTRY_KAFKASTORE_SSL_KEYSTORE_LOCATION: "/etc/schema-registry/secrets/keystore.pkcs12"
+      SCHEMA_REGISTRY_KAFKASTORE_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      SCHEMA_REGISTRY_KAFKASTORE_SSL_KEY_PASSWORD: "${CA_PASS}"
+      SCHEMA_REGISTRY_LISTENERS: "https://0.0.0.0:8081"
+      SCHEMA_REGISTRY_INTER_INSTANCE_PROTOCOL: "https"
+      SCHEMA_REGISTRY_SSL_KEYSTORE_LOCATION: "/etc/schema-registry/secrets/keystore.pkcs12"
+      SCHEMA_REGISTRY_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      SCHEMA_REGISTRY_SSL_TRUSTSTORE_LOCATION: "/etc/schema-registry/secrets/truststore.jks"
+      SCHEMA_REGISTRY_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      SCHEMA_REGISTRY_SSL_KEY_PASSWORD: "${CA_PASS}"
+      SCHEMA_REGISTRY_SSL_CLIENT_AUTH: true
+      SCHEMA_REGISTRY_KAFKASTORE_TIMEOUT_MS: "180000"
+      SCHEMA_REGISTRY_KAFKASTORE_INIT_TIMEOUT_MS: "180000"
+    volumes:
+      - ./mount_dir/schema-registry/creds:/etc/schema-registry/secrets
+    ports:
+      - "8081:8081"
+    networks:
+      - kafka-network
+    restart: unless-stopped
+
+  kafka-connect:
+    build:
+      context: .
+      dockerfile: docker/kafka-connect/Dockerfile
+    container_name: kafka-connect
+    hostname: kafka-connect
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: "kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093"
+      CONNECT_GROUP_ID: "connect-file-sink"
+      CONNECT_CONFIG_STORAGE_TOPIC: "connect-configs"
+      CONNECT_OFFSET_STORAGE_TOPIC: "connect-offsets"
+      CONNECT_STATUS_STORAGE_TOPIC: "connect-status"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+      CONNECT_VALUE_CONVERTER: "io.confluent.connect.json.JsonSchemaConverter"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: "https://schema-registry:8081"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_KEY_PASSWORD: "${CA_PASS}"
+#      CONNECT_PLUGIN_PATH: "/usr/share/java/,/usr/share/confluent-hub-components/,/usr/share/filestream-connectors/"
+#      CONNECT_PLUGIN_PATH: "/usr/share/java/kafka-serde-tools/,/usr/share/java/schema-registry/,/usr/share/confluent-hub-components/,/usr/share/filestream-connectors/"
+      CONNECT_PLUGIN_PATH: "/usr/share/confluent-hub-components/,/usr/share/filestream-connectors/"
+      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_SECURITY_PROTOCOL: "SSL"
+      CONNECT_SSL_TRUSTSTORE_TYPE: "JKS"
+      CONNECT_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+      CONNECT_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_SSL_KEYSTORE_TYPE: "PKCS12"
+      CONNECT_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      CONNECT_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_SSL_KEY_PASSWORD: "${CA_PASS}"
+      CONNECT_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
+      CONNECT_REST_ADVERTISED_HOST_NAME: "kafka-connect"
+      CONNECT_LISTENERS: "https://:8083"
+      CONNECT_REST_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      CONNECT_REST_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_REST_SSL_KEY_PASSWORD: "${CA_PASS}"
+      CONNECT_CONSUMER_SECURITY_PROTOCOL: "SSL"
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_TYPE: "JKS"
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_CONSUMER_SSL_KEYSTORE_TYPE: "PKCS12"
+      CONNECT_CONSUMER_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      CONNECT_CONSUMER_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_CONSUMER_SSL_KEY_PASSWORD: "${CA_PASS}"
+      CONNECT_CONSUMER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
+    volumes:
+      - ./mount_dir/kafka-connect/creds:/etc/kafka/secrets
+      - ./mount_dir/kafka-connect/output:/var/lib/kafka-connect-data
+      - ./mount_dir/hadoop/configs:/etc/hadoop/conf
+    ports:
+      - "8083:8083"
+    networks:
+      - kafka-network
+    depends_on:
+      - schema-registry
+    restart: unless-stopped
+
+  mirror-maker:
+    build:
+      context: .
+      dockerfile: docker/mirror-maker/Dockerfile
+    container_name: mirror-maker
+    environment:
+      LOG4J_LOGGERS: "org.apache.kafka=DEBUG,org.apache.kafka.connect.mirror=DEBUG"
+      CONNECT_BOOTSTRAP_SERVERS: "kafka2-b-1:9093,kafka2-b-2:9093,kafka2-b-3:9093"
+      CONNECT_GROUP_ID: "mirror-maker-connect"
+      CONNECT_CONFIG_STORAGE_TOPIC: "mirror-maker-configs"
+      CONNECT_OFFSET_STORAGE_TOPIC: "mirror-maker-offsets"
+      CONNECT_STATUS_STORAGE_TOPIC: "mirror-maker-status"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 3
+    volumes:
+      - ./mount_dir/mirror-maker/creds:/etc/kafka/secrets/source
+      - ./mount_dir/mirror-maker/creds:/etc/kafka/secrets/target
+      - ./mount_dir/mirror-maker/config:/etc/mirror-maker
+    networks:
+      - kafka-network
+    restart: unless-stopped
+
+  kafka-connect-hdfs:
+    build:
+      context: .
+      dockerfile: docker/kafka-connect/Dockerfile
+    container_name: kafka-connect-hdfs
+    hostname: kafka-connect-hdfs
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: "kafka2-b-1:9093,kafka2-b-2:9093,kafka2-b-3:9093"
+      CONNECT_GROUP_ID: "connect-hdfs-sink"
+      CONNECT_CONFIG_STORAGE_TOPIC: "hdfs-connect-configs"
+      CONNECT_OFFSET_STORAGE_TOPIC: "hdfs-connect-offsets"
+      CONNECT_STATUS_STORAGE_TOPIC: "hdfs-connect-status"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+      CONNECT_VALUE_CONVERTER: "io.confluent.connect.json.JsonSchemaConverter"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: "https://schema-registry:8081"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_KEY_PASSWORD: "${CA_PASS}"
+#      CONNECT_PLUGIN_PATH: "/usr/share/java/,/usr/share/confluent-hub-components/,/usr/share/filestream-connectors/"
+#      CONNECT_PLUGIN_PATH: "/usr/share/java/kafka-serde-tools/,/usr/share/java/schema-registry/,/usr/share/confluent-hub-components/,/usr/share/filestream-connectors/"
+      CONNECT_PLUGIN_PATH: "/usr/share/confluent-hub-components/,/usr/share/filestream-connectors/"
+
+      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_SECURITY_PROTOCOL: "SSL"
+      CONNECT_SSL_TRUSTSTORE_TYPE: "JKS"
+      CONNECT_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+      CONNECT_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_SSL_KEYSTORE_TYPE: "PKCS12"
+      CONNECT_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      CONNECT_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_SSL_KEY_PASSWORD: "${CA_PASS}"
+      CONNECT_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
+      CONNECT_REST_ADVERTISED_HOST_NAME: "kafka-connect-hdfs"
+      CONNECT_LISTENERS: "https://:8083"
+      CONNECT_REST_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      CONNECT_REST_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_REST_SSL_KEY_PASSWORD: "${CA_PASS}"
+      CONNECT_CONSUMER_SECURITY_PROTOCOL: "SSL"
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_TYPE: "JKS"
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_CONSUMER_SSL_KEYSTORE_TYPE: "PKCS12"
+      CONNECT_CONSUMER_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      CONNECT_CONSUMER_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_CONSUMER_SSL_KEY_PASSWORD: "${CA_PASS}"
+      CONNECT_CONSUMER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
+    volumes:
+      - ./mount_dir/kafka-connect/creds:/etc/kafka/secrets
+      - ./mount_dir/hadoop/configs:/etc/hadoop/conf
+    ports:
+      - "8084:8083"
+    networks:
+      - kafka-network
+    depends_on:
+      - schema-registry
+    restart: unless-stopped
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    ports:
+      - "8080:8080"
+    environment:
+      DYNAMIC_CONFIG_ENABLED: 'true'
+      KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS: "kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093"
+      KAFKA_CLUSTERS_0_NAME: "kafka-kraft"
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: "SSL"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_TYPE: "JKS"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_FILENAME: "truststore.jks"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_CREDENTIALS: "truststore_creds"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_TYPE: "PKCS12"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_FILENAME: "keystore.pkcs12"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_CREDENTIALS: "keystore_creds"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEY_PASSWORD: "${CA_PASS}"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEY_CREDENTIALS: "sslkey_creds"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
+      KAFKA_CLUSTERS_1_BOOTSTRAP_SERVERS: "kafka2-b-1:9093,kafka2-b-2:9093,kafka2-b-3:9093"
+      KAFKA_CLUSTERS_1_NAME: "kafka2-kraft"
+      KAFKA_CLUSTERS_1_PROPERTIES_SECURITY_PROTOCOL: "SSL"
+      KAFKA_CLUSTERS_1_PROPERTIES_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+      KAFKA_CLUSTERS_1_PROPERTIES_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      KAFKA_CLUSTERS_1_PROPERTIES_SSL_TRUSTSTORE_TYPE: "JKS"
+      KAFKA_CLUSTERS_1_PROPERTIES_SSL_TRUSTSTORE_FILENAME: "truststore.jks"
+      KAFKA_CLUSTERS_1_PROPERTIES_SSL_TRUSTSTORE_CREDENTIALS: "truststore_creds"
+      KAFKA_CLUSTERS_1_PROPERTIES_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      KAFKA_CLUSTERS_1_PROPERTIES_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      KAFKA_CLUSTERS_1_PROPERTIES_SSL_KEYSTORE_TYPE: "PKCS12"
+      KAFKA_CLUSTERS_1_PROPERTIES_SSL_KEYSTORE_FILENAME: "keystore.pkcs12"
+      KAFKA_CLUSTERS_1_PROPERTIES_SSL_KEYSTORE_CREDENTIALS: "keystore_creds"
+      KAFKA_CLUSTERS_1_PROPERTIES_SSL_KEY_PASSWORD: "${CA_PASS}"
+      KAFKA_CLUSTERS_1_PROPERTIES_SSL_KEY_CREDENTIALS: "sslkey_creds"
+      KAFKA_CLUSTERS_1_PROPERTIES_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: "https://schema-registry:8081"
+      KAFKA_CLUSTERS_1_SCHEMAREGISTRY: "https://schema-registry:8081"
+    volumes:
+      - ./mount_dir/kafka-ui/creds:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    depends_on:
+      - schema-registry
+    restart: unless-stopped
+
+  hdfs-namenode:
+    image: apache/hadoop:3.3.6
+    container_name: hdfs-namenode
+    hostname: hdfs-namenode
+    user: root
+    entrypoint: [ "/bin/bash", "-c" ]
+    command:
+      - |
+        if [ ! -d /hadoop/dfs/name/current ]; then
+          echo "First start — formatting NameNode..."
+          hdfs namenode -format -nonInteractive
+        fi
+        echo "Starting NameNode..."
+        exec hdfs namenode
+    environment:
+      - HADOOP_CONF_DIR=/etc/hadoop/conf
+    volumes:
+      - ./mount_dir/hadoop/configs:/etc/hadoop/conf
+      - hdfs-namenode-data:/hadoop/dfs/name
+    ports:
+      - "9870:9870"
+      - "9000:9000"
+    networks:
+      - kafka-network
+    restart: unless-stopped
+
+  hdfs-datanode:
+    image: apache/hadoop:3.3.6
+    container_name: hdfs-datanode
+    hostname: hdfs-datanode
+    user: root
+    command: ["hdfs", "datanode"]
+    environment:
+      - HADOOP_CONF_DIR=/etc/hadoop/conf
+    volumes:
+      - ./mount_dir/hadoop/configs:/etc/hadoop/conf
+      - hdfs-datanode-data:/hadoop/dfs/data
+    ports:
+      - "9864:9864"
+    networks:
+      - kafka-network
+    depends_on:
+      - hdfs-namenode
+    restart: unless-stopped
+
+volumes:
+  hdfs-namenode-data:
+  hdfs-datanode-data:
+
+networks:
+  kafka-network:
+    driver: bridge

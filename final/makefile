@@ -41,6 +41,7 @@ TOPIC_SCRIPT = ./scripts/topic.sh
 ACL_SCRIPT = ./scripts/acl.sh
 SCHEMA_REG_SCRIPT = ./scripts/schema-registry.sh
 KAFKA_CONNECT_SCRIPT = ./scripts/kafka-connect.sh
+WAIT_FOR_KAFKA_SCRIPT = ./scripts/wait_for_kafka.sh
 
 # Цвета для вывода
 GREEN = \033[0;32m
@@ -52,11 +53,11 @@ name ?=
 
 .PHONY: restart-name
 restart-name: ## Перезапустить указанные контейнеры name="имя_контейнера1 имя_контейнера2"
-	@$(DOCKER_COMPOSE) up -d ${name}
+	@$(DOCKER_COMPOSE) TODO up -d ${name}
 
 .PHONY: rebuild-name
 rebuild-name: ## Пересобрать указанный контейнер name=имя_контейнера
-	@$(DOCKER_COMPOSE) down ${name}
+	@$(DOCKER_COMPOSE) TODO down ${name}
 	@$(DOCKER_COMPOSE) down -v ${name}
 	@$(DOCKER_COMPOSE) up -d --no-deps --build ${name}
 
@@ -65,6 +66,12 @@ kafka-connect: ## Добавить коннекторы в KAFKA-CONNECT
 	@echo "$(GREEN)=== Add connectors ===$(NC)"
 	@sh $(KAFKA_CONNECT_SCRIPT)
 	@echo "$(GREEN)✅ Add connectors finished$(NC)"
+
+.PHONY: wait-kafka
+wait-kafka: ## Ждем готовности кластера Kafka
+	@echo "$(GREEN)=== Wait for kafka ===$(NC)"
+	@sh $(WAIT_FOR_KAFKA_SCRIPT)
+	@echo "$(GREEN)✅ Wait for kafka finished$(NC)"
 
 .PHONY: ssl
 ssl: ## Сгенерировать SSL сертификаты
@@ -93,23 +100,18 @@ acl: ## Выдать права
 .PHONY: down
 down: ## Остановить кластер
 	@echo "$(YELLOW)=== Stopping cluster ===$(NC)"
-	@$(DOCKER_COMPOSE) -f docker-compose-app.yml down app
-	@$(DOCKER_COMPOSE) down
+	@$(DOCKER_COMPOSE) -f docker-compose.spark.yml down
+	@$(DOCKER_COMPOSE) -f docker-compose.apps.yml down
+	@$(DOCKER_COMPOSE) -f docker-compose.kafka.yml down
 	@echo "$(GREEN)✅ Cluster stopped$(NC)"
 
 .PHONY: clean
 clean: ## Остановить кластер и удалить данные (volumes)
 	@echo "$(YELLOW)=== Cleaning cluster data ===$(NC)"
-	@$(DOCKER_COMPOSE) -f docker-compose-app.yml down -v app
-	@$(DOCKER_COMPOSE) down -v
+	@$(DOCKER_COMPOSE) -f docker-compose.spark.yml down -v
+	@$(DOCKER_COMPOSE) -f docker-compose.apps.yml down -v
+	@$(DOCKER_COMPOSE) -f docker-compose.kafka.yml down -v
 	@echo "$(GREEN)✅ Cluster data cleaned$(NC)"
-
-.PHONY: up
-up: ## Запустить кластер
-	@echo "$(GREEN)=== Starting cluster ===$(NC)"
-	@$(DOCKER_COMPOSE) up -d --build
-	@echo "$(GREEN)✅ Cluster started$(NC)"
-	@make status
 
 .PHONY: status
 status: ## Проверить статус контейнеров
@@ -117,7 +119,7 @@ status: ## Проверить статус контейнеров
 	@$(DOCKER_COMPOSE) ps
 
 .PHONY: wait70
-wait70: ## Подождать 40 секунд для готовности Kafka
+wait70: ## Подождать 70 секунд для готовности Kafka
 	@echo "$(YELLOW)=== Waiting 70 seconds for Kafka to be ready ===$(NC)"
 	@sleep 70
 	@echo "$(GREEN)✅ Wait complete$(NC)"
@@ -142,15 +144,22 @@ rebuild:  ## Пересобрать кластер, создать топики,
 	@make down
 	@make clean
 	@make ssl
-	@make up
-	@make wait70
+	@echo "$(GREEN)========= Starting kafka cluster =========$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.kafka.yml  up -d --build
+	@make status
+	@make wait-kafka
 	@make topic
-	@make wait20
 	@make acl
-	@make wait70
+	@echo "$(GREEN)========= Starting apps  =========$(NC)"
+	@make wait-kafka
+	@$(DOCKER_COMPOSE) -f docker-compose.apps.yml  up -d --build
+	@make status
 	@make schema-reg
-	@make wait20
 	@make kafka-connect
+	@echo "$(GREEN)========= Starting spark  =========$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose.spark.yml  up -d --build
+	@make status
+	@echo "$(GREEN)✅ Cluster started$(NC)"
 
 # TODO #@make up-app
 

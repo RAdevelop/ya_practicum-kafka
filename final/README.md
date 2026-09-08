@@ -20,6 +20,12 @@ EOF
 make rebuild
 ```
 
+> Развертывание всех сервисов может доходить до 10-15 минут!
+> 
+> Я не знаю какие настройки нужно подкрутить для ускорения. Есть скрипты проверки доступности сервисов. Они показывают процесс.
+> В частности, это касается готовности Schema Registry, Kafka Connect, Kafka Connect HDFS.
+> ServiceLoaderScanner отработал за 13 секунд вместо 16 минут — это победа. Но ReflectionScanner всё ещё медленный: hdfs3 сканировался 6.5 минут, filestream — 4.5 минуты. Общее время — около 12 минут, но в лимит 600 секунд уложилось.
+
 ## Пользователи Kafka
 
 - `shop-api` - отправка товаров в кластер
@@ -50,7 +56,7 @@ make rebuild
   - `data/shop-products.json` - файл с первыми 10-тью товарами
 - `products_blocked` - список товаров, которые заблокированы, и не должны в итоге участвовать в обработке (аналитика и тп)
 - `products_published` - список товаров, которые прошли фильтрацию заблокированных товаров, и должны в итоге участвовать в обработке (аналитика и тп)
-- `recommendations`
+- `recommendations` - рекомендации по товарам (результат аналитики)
 
 ## Скрипты для развертывания
 
@@ -61,6 +67,7 @@ make rebuild
 - `/scripts/acl.sh` - выдача прав
 - `/scripts/schema-registry.sh` - регистрация JSON схем в сервисе schema-registry
 - `/scripts/kafka-connect.sh` - регистрация коннектора для сохранения данных в файл
+- `/scripts/wait_for_kafka.sh` - ожидание доступности кластера Kafka (ее брокеров и контроллеров), чтобы последующие операции в скриптах успешно выполнялись
 
 
 Данные в файле можно увидеть так:
@@ -81,7 +88,14 @@ Struct{store_id=store_001,images=[Struct{alt=Наушники SoundMax Pro,url=h
   - Это состояние топиков 2-го кластера после публикации первых 10 товаров, когда еще нет заблокированных:
     - ![состояние топиков 2-го кластера](./screens/1.png)
 
-### Проверь данные в HDFS
+#### SHOP-API
+TODO скрин браузера со списком заблокированных товаров
+TODO скрин браузера для добавления/удаления товара из заблокированных
+
+#### CLIENT-API
+TODO скрин браузера с результатом поиска товара и рекомендации
+
+### Проверить данные в HDFS
 
 ```bash
 docker exec hdfs-namenode hdfs dfs -ls -R /topics
@@ -105,3 +119,13 @@ drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/products_p
 -rw-r--r--   1 appuser supergroup       2212 2026-09-08 10:09 /topics/products_published/partition=2/products_published+2+0000000000+0000000002.json
 -rw-r--r--   1 appuser supergroup       2212 2026-09-08 10:09 /topics/products_published/partition=2/products_published+2+0000000003+0000000005.json
 ```
+
+### Результат формирования рекомендаций
+
+TODO скрин браузера с джобой http://localhost:8090/
+TODO скрин браузера с топиком в UI http://localhost:8080/ui/clusters/kafka2-kraft/all-topics/recommendations/messages?keySerde=String&valueSerde=SchemaRegistry&limit=100
+
+
+### Мониторинг
+
+TODO скрин с графаной с результатами мониторинга

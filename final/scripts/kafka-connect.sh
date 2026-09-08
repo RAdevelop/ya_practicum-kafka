@@ -1,11 +1,65 @@
 #!/bin/bash
 
+set -euo pipefail
+
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 
 CACERT="./mount_dir/kafka-connect/creds/truststore.pem"
 CERT="./mount_dir/kafka-connect/creds/keystore.pem"
 KEY="./mount_dir/kafka-connect/creds/keystore.key"
+
+
+
+start_time=$SECONDS
+max_seconds=700
+i=0
+ready=false
+echo "${YELLOW}Waiting for Kafka Connect (max ${max_seconds} seconds)...${NC}"
+while (( SECONDS - start_time < max_seconds )); do
+  ((i++))
+  if curl -sk \
+      --cacert "$CACERT" \
+      https://localhost:8083/connectors >/dev/null 2>&1; then
+    echo "Kafka Connect (8083) is ready!"
+    ready=true
+    break
+  fi
+  echo "  [$i] Not ready yet... (elapsed: $((SECONDS - start_time))s)"
+  sleep 5
+done
+
+if [[ "$ready" != "true" ]]; then
+  echo "ERROR: Kafka Connect did not start within 5 minutes!"
+  exit 1
+fi
+
+# Ждём второй Connect (HDFS) на порту 8084
+echo "${YELLOW}Waiting for Kafka Connect HDFS (8084) (max ${max_seconds} seconds)...${NC}"
+
+start_time=$SECONDS
+i=0
+ready_hdfs=false
+
+while (( SECONDS - start_time < max_seconds )); do
+  ((i++))
+  if curl -sk \
+      --cacert "$CACERT" \
+      https://localhost:8084/connectors >/dev/null 2>&1; then
+    echo "Kafka Connect HDFS (8084) is ready!"
+    ready_hdfs=true
+    break
+  fi
+  echo "  [$i] Not ready yet... (elapsed: $((SECONDS - start_time))s)"
+  sleep 5
+done
+
+if [[ "$ready_hdfs" != "true" ]]; then
+  echo "ERROR: Kafka Connect HDFS did not start within 5 minutes!"
+  exit 1
+fi
+
+sleep 10
 
 ################################ kafka-connect
 
@@ -30,30 +84,36 @@ curl -s -X PUT https://localhost:8083/connectors/file-sink-products/config \
     "value.converter.schema.registry.ssl.key.password": "'"${CA_PASS}"'"
   }' | jq
 
-
-# Статус коннектора — RUNNING или FAILED
-sleep 10
-echo "\n"
+# Статус коннектора
+printf "\n"
 echo "${YELLOW}connectors/file-sink-products/status${NC}"
-curl -s https://localhost:8083/connectors/file-sink-products/status \
---cacert ${CACERT} | jq
+for s in $(seq 1 10); do
+  resp=$(curl -s https://localhost:8083/connectors/file-sink-products/status --cacert ${CACERT})
+  if echo "$resp" | jq -e . >/dev/null 2>&1 && ! echo "$resp" | jq -e '.error_code' >/dev/null 2>&1; then
+    echo "$resp" | jq
+    break
+  fi
+  echo "  [$s/10] Status not ready, waiting..."
+  sleep 5
+done
 
 # Список всех коннекторов
-echo "\n"
+printf "\n"
 echo "${YELLOW}connectors${NC}"
 curl -s https://localhost:8083/connectors \
 --cacert ${CACERT} | jq
 
 # Конфигурация коннектора
-echo "\n"
+printf "\n"
 echo "${YELLOW}connectors/file-sink-products/config${NC}"
 curl -s https://localhost:8083/connectors/file-sink-products/config \
 --cacert ${CACERT} | jq
 
 ################################ kafka-connect-hdfs
 ####### Hdfs3SinkConnector
+printf "\n"
 echo "${YELLOW}POST connectors Hdfs3SinkConnector${NC}"
-curl -X POST https://localhost:8084/connectors \
+curl -s -X POST https://localhost:8084/connectors \
   -H "Content-Type: application/json" \
   --cacert ${CACERT} \
   -d '{
@@ -82,12 +142,11 @@ curl -X POST https://localhost:8084/connectors \
       "confluent.topic.ssl.keystore.password": "'"${CA_PASS}"'",
       "confluent.topic.ssl.key.password": "'"${CA_PASS}"'"
     }
-  }'
-
+  }' | jq
 
 
 #По параметрам:
-#"topics.dir": "topics" - имя "папки", куда будут скалыдваться файлы в hdfs
+#"topics.dir": "topics" - имя "папки", куда будут складываться файлы в hdfs
 #format.class — JsonFormat, потому что ты используешь JsonSchemaConverter. Если бы был AvroConverter — нужен был бы AvroFormat.
 #flush.size — 3: каждый 3-й сообщение триггерит запись файла в HDFS. Маленькое число для быстрой проверки; в проде обычно 100+.
 #store.url — адрес NameNode, как в core-site.xml.
@@ -95,20 +154,29 @@ curl -X POST https://localhost:8084/connectors \
 #Конвертеры (value.converter, schema.registry.*) не указываем — они наследуются из worker-конфига.
 
 # Статус коннектора — RUNNING или FAILED
-sleep 10
-echo "\n"
+printf "\n"
 echo "${YELLOW}connectors/hdfs3-sink-products/status${NC}"
-curl -s https://localhost:8084/connectors/hdfs3-sink-products/status \
---cacert ${CACERT} | jq
+for s in $(seq 1 10); do
+  resp=$(curl -s https://localhost:8084/connectors/hdfs3-sink-products/status --cacert ${CACERT})
+  if echo "$resp" | jq -e . >/dev/null 2>&1 && ! echo "$resp" | jq -e '.error_code' >/dev/null 2>&1; then
+    echo "$resp" | jq
+    break
+  fi
+  echo "  [$s/10] Status not ready, waiting..."
+  sleep 5
+done
+
 
 # Список всех коннекторов
-echo "\n"
+printf "\n"
 echo "${YELLOW}connectors${NC}"
 curl -s https://localhost:8084/connectors \
 --cacert ${CACERT} | jq
 
 # Конфигурация коннектора
-echo "\n"
+printf "\n"
 echo "${YELLOW}connectors/hdfs3-sink-products/config${NC}"
 curl -s https://localhost:8084/connectors/hdfs3-sink-products/config \
 --cacert ${CACERT} | jq
+
+printf "\n"
