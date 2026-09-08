@@ -372,7 +372,9 @@ services:
     restart: unless-stopped
 
   kafka-connect:
-    image: confluentinc/cp-kafka-connect:8.3.0
+    build:
+      context: .
+      dockerfile: docker/kafka-connect/Dockerfile
     container_name: kafka-connect
     hostname: kafka-connect
     environment:
@@ -427,6 +429,7 @@ services:
     volumes:
       - ./mount_dir/kafka-connect/creds:/etc/kafka/secrets
       - ./mount_dir/kafka-connect/output:/var/lib/kafka-connect-data
+      - ./mount_dir/hadoop/configs:/etc/hadoop/conf
     ports:
       - "8083:8083"
     networks:
@@ -535,6 +538,195 @@ services:
       - kafka-b-3
       - schema-registry
 
+  kafka-connect-hdfs:
+    build:
+      context: .
+      dockerfile: docker/kafka-connect/Dockerfile
+    container_name: kafka-connect-hdfs
+    hostname: kafka-connect-hdfs
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: "kafka2-b-1:9093,kafka2-b-2:9093,kafka2-b-3:9093"
+      CONNECT_GROUP_ID: "connect-hdfs-sink"
+      CONNECT_CONFIG_STORAGE_TOPIC: "hdfs-connect-configs"
+      CONNECT_OFFSET_STORAGE_TOPIC: "hdfs-connect-offsets"
+      CONNECT_STATUS_STORAGE_TOPIC: "hdfs-connect-status"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+      CONNECT_VALUE_CONVERTER: "io.confluent.connect.json.JsonSchemaConverter"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: "https://schema-registry:8081"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_SSL_KEY_PASSWORD: "${CA_PASS}"
+      CONNECT_PLUGIN_PATH: "/usr/share/java/,/usr/share/confluent-hub-components/,/usr/share/filestream-connectors/"
+      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+
+      # SSL
+      CONNECT_SECURITY_PROTOCOL: "SSL"
+      CONNECT_SSL_TRUSTSTORE_TYPE: "JKS"
+      CONNECT_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+      CONNECT_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_SSL_KEYSTORE_TYPE: "PKCS12"
+      CONNECT_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      CONNECT_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_SSL_KEY_PASSWORD: "${CA_PASS}"
+      CONNECT_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
+
+      # REST API
+      CONNECT_REST_ADVERTISED_HOST_NAME: "kafka-connect-hdfs"
+      CONNECT_LISTENERS: "https://:8083"
+      CONNECT_REST_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      CONNECT_REST_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_REST_SSL_KEY_PASSWORD: "${CA_PASS}"
+
+      # Consumer SSL
+      CONNECT_CONSUMER_SECURITY_PROTOCOL: "SSL"
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_TYPE: "JKS"
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_LOCATION: "/etc/kafka/secrets/truststore.jks"
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_CONSUMER_SSL_KEYSTORE_TYPE: "PKCS12"
+      CONNECT_CONSUMER_SSL_KEYSTORE_LOCATION: "/etc/kafka/secrets/keystore.pkcs12"
+      CONNECT_CONSUMER_SSL_KEYSTORE_PASSWORD: "${CA_PASS}"
+      CONNECT_CONSUMER_SSL_KEY_PASSWORD: "${CA_PASS}"
+      CONNECT_CONSUMER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "https"
+    volumes:
+      - ./mount_dir/kafka-connect/creds:/etc/kafka/secrets
+      - ./mount_dir/hadoop/configs:/etc/hadoop/conf
+    ports:
+      - "8084:8083"
+    networks:
+      - kafka-network
+    depends_on:
+      - kafka2-b-1
+      - kafka2-b-2
+      - kafka2-b-3
+      - hdfs-namenode
+      - hdfs-datanode
+    restart: unless-stopped
+
+  hdfs-namenode:
+    image: apache/hadoop:3.3.6
+    container_name: hdfs-namenode
+    hostname: hdfs-namenode
+    user: root
+    entrypoint: [ "/bin/bash", "-c" ]
+    command:
+      - |
+        if [ ! -d /hadoop/dfs/name/current ]; then
+          echo "First start — formatting NameNode..."
+          hdfs namenode -format -nonInteractive
+        fi
+        echo "Starting NameNode..."
+        exec hdfs namenode   # ← exec важен, чтобы процесс был PID 1
+    environment:
+      - HADOOP_CONF_DIR=/etc/hadoop/conf
+    volumes:
+      - ./mount_dir/hadoop/configs:/etc/hadoop/conf
+      - hdfs-namenode-data:/hadoop/dfs/name
+    ports:
+      - "9870:9870"
+      - "9000:9000"
+    networks:
+      - kafka-network
+    restart: unless-stopped
+
+  hdfs-datanode:
+    image: apache/hadoop:3.3.6
+    container_name: hdfs-datanode
+    hostname: hdfs-datanode
+    user: root
+    command: ["hdfs", "datanode"]
+    environment:
+      - HADOOP_CONF_DIR=/etc/hadoop/conf
+    volumes:
+      - ./mount_dir/hadoop/configs:/etc/hadoop/conf
+      - hdfs-datanode-data:/hadoop/dfs/data
+    ports:
+      - "9864:9864"   # Web UI DataNode
+    networks:
+      - kafka-network
+    depends_on:
+      - hdfs-namenode
+    restart: unless-stopped
+
+  spark-master:
+    image: apache/spark:3.5.0
+    container_name: spark-master
+    hostname: spark-master
+    user: root
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+      - SPARK_MASTER_HOST=spark-master
+      - HADOOP_CONF_DIR=/etc/hadoop/conf
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    volumes:
+      - ./mount_dir/hadoop/configs:/etc/hadoop/conf
+      - ./mount_dir/kafka-connect/creds:/etc/kafka/secrets
+    ports:
+      - "8090:8080"   # Spark Web UI
+      - "7077:7077"   # Spark Master RPC
+    networks:
+      - kafka-network
+    depends_on:
+      - hdfs-namenode
+      - hdfs-datanode
+    restart: unless-stopped
+
+  spark-worker:
+    image: apache/spark:3.5.0
+    container_name: spark-worker
+    hostname: spark-worker
+    user: root
+    environment:
+      - SPARK_NO_DAEMONIZE=true
+      - SPARK_WORKER_MEMORY=2g
+      - SPARK_WORKER_CORES=1
+      - HADOOP_CONF_DIR=/etc/hadoop/conf
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    volumes:
+      - ./mount_dir/hadoop/configs:/etc/hadoop/conf
+      - ./mount_dir/kafka-connect/creds:/etc/kafka/secrets
+    networks:
+      - kafka-network
+    depends_on:
+      - spark-master
+    restart: unless-stopped
+
+  spark-job:
+    image: apache/spark:3.5.0
+    container_name: spark-job
+    user: root
+    environment:
+      - HADOOP_CONF_DIR=/etc/hadoop/conf
+    volumes:
+      - ./mount_dir/hadoop/configs:/etc/hadoop/conf
+      - ./mount_dir/spark/apps:/opt/spark/apps
+      - ./mount_dir/kafka-connect/creds:/etc/kafka/secrets
+      - spark-ivy-cache:/root/.ivy2
+    command: >
+      bash -c "
+        echo 'Waiting for Spark Master...' &&
+        sleep 15 &&
+        while true; do
+          echo '=== Running analytics job ===' &&
+          /opt/spark/bin/spark-submit --master spark://spark-master:7077 --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 /opt/spark/apps/analytics.py &&
+          echo '=== Job finished. Sleeping 300s ===' &&
+          sleep 300;
+        done
+      "
+    networks:
+      - kafka-network
+    depends_on:
+      - spark-master
+      - spark-worker
+      - hdfs-namenode
+      - hdfs-datanode
+    restart: unless-stopped
+
 volumes:
   kafka-c-1-data:
   kafka-c-2-data:
@@ -548,6 +740,9 @@ volumes:
   kafka2-b-1-data:
   kafka2-b-2-data:
   kafka2-b-3-data:
+  hdfs-namenode-data:
+  hdfs-datanode-data:
+  spark-ivy-cache:
 
 networks:
   kafka-network:

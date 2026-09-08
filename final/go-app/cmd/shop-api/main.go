@@ -183,7 +183,7 @@ func emitProducts(wg *sync.WaitGroup, logger *logger.Logger, products []models.P
 	if len(products) == 0 {
 		return
 	}
-
+	time.Sleep(2 * time.Second)
 	// добавим для примера в заблокированные товары первый товар из списка:
 	event := "add:" + products[0].Name
 	err := emitters.BlockedProductsEmitter.EmitSync(config.KeyTopic.ProductsBlocked, event)
@@ -191,6 +191,7 @@ func emitProducts(wg *sync.WaitGroup, logger *logger.Logger, products []models.P
 		logger.Error("Failed to emit block product for event: %s, err: %v", event, err)
 	}
 
+	time.Sleep(2 * time.Second)
 	for _, product := range products {
 		key := product.ProductId
 		if err := emitters.ProductsEmitter.EmitSync(key, product); err != nil {

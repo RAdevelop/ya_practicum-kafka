@@ -176,7 +176,7 @@ EOF
 
 
 # users:
-for u in ${USER_ADMIN} ${USER_KAFKA_UI} ${USER_SCHEMA_REGISTRY} ${USER_SHOP_API} ${USER_CLIENT_API} ${USER_MIRROR_MAKER} ${USER_SPARK} ${USER_KAFKA_CONNECT}; do
+for u in ${USER_ADMIN} ${USER_KAFKA_UI} ${USER_SCHEMA_REGISTRY} ${USER_SHOP_API} ${USER_CLIENT_API} ${USER_MIRROR_MAKER} ${USER_KAFKA_CONNECT}; do
   create_cert ${u}
 done
 
@@ -226,8 +226,8 @@ topics.exclude = __.*|.*[\-\.]internal|.*[\-\.]._replica|_schemas
 # ─── Кластеры ───
 clusters = kafka, kafka2
 
-kafka.bootstrap.servers = kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093
-kafka2.bootstrap.servers = kafka2-b-1:9093,kafka2-b-2:9093,kafka2-b-3:9093
+kafka.bootstrap.servers = ${BOOTSTRAP_SERVER}
+kafka2.bootstrap.servers = ${BOOTSTRAP_SERVER2}
 
 # ─── SSL для исходного кластера (kafka) ───
 kafka.security.protocol = SSL
@@ -288,6 +288,100 @@ refresh.groups.interval.seconds = 60
 # По умолчанию топики получат префикс: kafka.my-topic → kafka2
 # Если нужны одинаковые имена — раскомментируйте:
 replication.policy.class = org.apache.kafka.connect.mirror.IdentityReplicationPolicy
+
+EOF
+
+
+################################### hadoop
+
+HADOOP_DIR="${TMP_DIR}/hadoop"
+mkdir -p "${HADOOP_DIR}/configs"
+cat > "${HADOOP_DIR}/configs/core-site.xml" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+  <property>
+    <name>fs.defaultFS</name>
+    <value>hdfs://hdfs-namenode:9000</value>
+  </property>
+</configuration>
+
+EOF
+
+cat > "${HADOOP_DIR}/configs/hdfs-site.xml" << EOF
+<?xml version="1.0"?>
+<configuration>
+  <property>
+    <name>dfs.replication</name>
+    <value>1</value>
+  </property>
+  <property>
+    <name>dfs.webhdfs.enabled</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>dfs.permissions.enabled</name>
+    <value>false</value>
+  </property>
+  <property>
+    <name>dfs.namenode.name.dir</name>
+    <value>/hadoop/dfs/name</value>
+  </property>
+  <property>
+    <name>dfs.datanode.data.dir</name>
+    <value>/hadoop/dfs/data</value>
+  </property>
+</configuration>
+
+EOF
+
+#cat > "${HADOOP_DIR}/configs/hadoop.env" << EOF
+#CORE_CONF_fs_defaultFS=hdfs://hdfs-namenode:9000
+#HDFS_CONF_dfs_webhdfs_enabled=true
+#HDFS_CONF_dfs_permissions_enabled=false
+#HDFS_CONF_dfs_replication=1
+#
+#EOF
+
+###################################### spark analytics
+SPARK_DIR="${TMP_DIR}/spark"
+mkdir -p "${SPARK_DIR}/apps"
+#Py не знаю, скрипт писала ИИ
+cat > "${SPARK_DIR}/apps/analytics.py" << EOF
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, to_json, struct, collect_list
+
+spark = SparkSession.builder \
+    .appName("product-recommendations") \
+    .getOrCreate()
+
+spark.sparkContext.setLogLevel("WARN")
+
+# Читаем JSON из HDFS
+products = spark.read.json("hdfs://hdfs-namenode:9000/topics/products_published/*/*")
+products = products.dropDuplicates(["product_id"])
+
+# Группируем по категории, собираем рекомендации
+result = products.groupBy("category").agg(
+    to_json(struct(
+        col("category"),
+        collect_list(struct("product_id", "name", "brand")).alias("recommended_products")
+    )).alias("value")
+).select(col("category").cast("string").alias("key"), col("value"))
+
+# Пишем в Kafka
+result.write.format("kafka") \
+    .option("kafka.bootstrap.servers", "${BOOTSTRAP_SERVER2}") \
+    .option("topic", "recommendations") \
+    .option("kafka.security.protocol", "SSL") \
+    .option("kafka.ssl.truststore.location", "/etc/kafka/secrets/truststore.jks") \
+    .option("kafka.ssl.truststore.password", "kafka123") \
+    .option("kafka.ssl.keystore.location", "/etc/kafka/secrets/keystore.pkcs12") \
+    .option("kafka.ssl.keystore.password", "kafka123") \
+    .option("kafka.ssl.key.password", "kafka123") \
+    .save()
+
+spark.stop()
 
 EOF
 

@@ -30,8 +30,7 @@ make rebuild
 - `schema-registry` - регистрация схем
 - `kafka-ui` - для удобства проверки части результатов задания, можно смотреть в kafka-ui
 - `mirror-maker` - дублирование данных на 2-й кластер
-- `spark`
-- `kafka-connect` - сохранение данных в файл
+- `kafka-connect` - сохранение данных в файл, работа со spark, hdfs, аналитикой, коннекторами
 
 ## SuperUsers в кластерах
 
@@ -81,3 +80,28 @@ Struct{store_id=store_001,images=[Struct{alt=Наушники SoundMax Pro,url=h
   - можно увидеть, что данные в топиках дублируются
   - Это состояние топиков 2-го кластера после публикации первых 10 товаров, когда еще нет заблокированных:
     - ![состояние топиков 2-го кластера](./screens/1.png)
+
+### Проверь данные в HDFS
+
+```bash
+docker exec hdfs-namenode hdfs dfs -ls -R /topics
+```
+Результат вида:
+```text
+rwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/+tmp
+drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/+tmp/products_published
+drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/+tmp/products_published/partition=0
+drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:11 /topics/+tmp/products_published/partition=1
+drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/+tmp/products_published/partition=2
+drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/products_published
+drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/products_published/partition=0
+-rw-r--r--   1 appuser supergroup       2304 2026-09-08 10:09 /topics/products_published/partition=0/products_published+0+0000000000+0000000002.json
+-rw-r--r--   1 appuser supergroup       2186 2026-09-08 10:09 /topics/products_published/partition=0/products_published+0+0000000003+0000000005.json
+-rw-r--r--   1 appuser supergroup       2170 2026-09-08 10:09 /topics/products_published/partition=0/products_published+0+0000000006+0000000008.json
+drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:11 /topics/products_published/partition=1
+-rw-r--r--   1 appuser supergroup       2289 2026-09-08 10:09 /topics/products_published/partition=1/products_published+1+0000000000+0000000002.json
+-rw-r--r--   1 appuser supergroup        735 2026-09-08 10:11 /topics/products_published/partition=1/products_published+1+0000000003+0000000003.json
+drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/products_published/partition=2
+-rw-r--r--   1 appuser supergroup       2212 2026-09-08 10:09 /topics/products_published/partition=2/products_published+2+0000000000+0000000002.json
+-rw-r--r--   1 appuser supergroup       2212 2026-09-08 10:09 /topics/products_published/partition=2/products_published+2+0000000003+0000000005.json
+```

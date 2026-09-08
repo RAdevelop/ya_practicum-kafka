@@ -16,7 +16,6 @@ export USER_SCHEMA_REGISTRY := schema-registry
 export USER_SHOP_API := shop-api
 export USER_CLIENT_API := client-api
 export USER_MIRROR_MAKER := mirror-maker
-export USER_SPARK := spark
 export USER_KAFKA_CONNECT := kafka-connect
 
 export TOPIC_PRODUCTS := products
@@ -52,8 +51,8 @@ NC = \033[0m # No Color
 name ?=
 
 .PHONY: restart-name
-restart-name: ## Перезапустить указанный контейнер name=имя_контейнера
-	@$(DOCKER_COMPOSE) restart ${name}
+restart-name: ## Перезапустить указанные контейнеры name="имя_контейнера1 имя_контейнера2"
+	@$(DOCKER_COMPOSE) up -d ${name}
 
 .PHONY: rebuild-name
 rebuild-name: ## Пересобрать указанный контейнер name=имя_контейнера
@@ -123,10 +122,10 @@ wait70: ## Подождать 40 секунд для готовности Kafka
 	@sleep 70
 	@echo "$(GREEN)✅ Wait complete$(NC)"
 
-.PHONY: wait10
-wait10: ## Подождать 10 секунд для готовности Kafka
-	@echo "$(YELLOW)=== Waiting 10 seconds for Kafka to be ready ===$(NC)"
-	@sleep 10
+.PHONY: wait20
+wait20: ## Подождать 20 секунд для готовности Kafka
+	@echo "$(YELLOW)=== Waiting 20 seconds for Kafka to be ready ===$(NC)"
+	@sleep 20
 	@echo "$(GREEN)✅ Wait complete$(NC)"
 
 
@@ -146,11 +145,11 @@ rebuild:  ## Пересобрать кластер, создать топики,
 	@make up
 	@make wait70
 	@make topic
-	@make wait10
+	@make wait20
 	@make acl
 	@make wait70
 	@make schema-reg
-	@make wait10
+	@make wait20
 	@make kafka-connect
 
 # TODO #@make up-app
