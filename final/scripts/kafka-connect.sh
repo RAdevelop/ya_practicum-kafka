@@ -7,6 +7,9 @@ CACERT="./mount_dir/kafka-connect/creds/truststore.pem"
 CERT="./mount_dir/kafka-connect/creds/keystore.pem"
 KEY="./mount_dir/kafka-connect/creds/keystore.key"
 
+################################ kafka-connect
+
+######## FileStreamSinkConnector
 echo "${YELLOW}Put connectors file-sink-products${NC}"
 
 curl -s -X PUT https://localhost:8083/connectors/file-sink-products/config \
@@ -15,7 +18,7 @@ curl -s -X PUT https://localhost:8083/connectors/file-sink-products/config \
   -d '{
     "connector.class": "org.apache.kafka.connect.file.FileStreamSinkConnector",
     "tasks.max": "1",
-    "topics": "products_published",
+    "topics": "'"${TOPIC_PRODUCTS_PUBLISHED}"'",
     "file": "/var/lib/kafka-connect-data/products_published.jsonl",
     "key.converter": "org.apache.kafka.connect.storage.StringConverter",
     "value.converter": "io.confluent.connect.json.JsonSchemaConverter",
