@@ -25,14 +25,44 @@ make rebuild
 > Я не знаю какие настройки нужно подкрутить для ускорения. Есть скрипты проверки доступности сервисов. Они показывают процесс.
 > В частности, это касается готовности Schema Registry, Kafka Connect, Kafka Connect HDFS.
 > ServiceLoaderScanner отработал за 13 секунд вместо 16 минут — это победа. Но ReflectionScanner всё ещё медленный: hdfs3 сканировался 6.5 минут, filestream — 4.5 минуты. Общее время — около 12 минут, но в лимит 600 секунд уложилось.
+> 
+> Поэтому задание сделал на двух кластерах, в которых по одному контроллеру и одному брокеру.
+> Иначе Докер ест почти ве ресурсы компа.
+
+## docker-compose.yml
+- `docker-compose.kafka1.yml` 
+-   - 1-й и 2-й кластеры Kafka Kraft
+- `docker-compose.apps1.yml` 
+  - schema-registry 
+  - kafka-connect - пишет данные в файл из топика "опубликованных товаров" кластера 1 (см ниже) 
+  - mirror-maker - зеркалит топики во 2-й кластер, кроме топика рекомендаций; топик рекомендаций зеркалится из 2-го кластера в 1-й 
+  - kafka-connect-hdfs - на 2-м кластере читает топик "опубликованных товаров", кладет в hdfs для формирования рекомендаций
+  - kafka-ui - Web GUI для просмотра топиков и не только
+  - hdfs-namenode + hdfs-datanode - hdfs-хранилище 
+- `docker-compose.spark.yml` - Spark
+  - spark-master + spark-worker + spark-job
+    - выполняет задачу формирования рекомендаций
+    - джоба раз в 2 минуты смотрит hdfs (`hdfs://hdfs-namenode:9000/topics/products_published/*/*`), обрабатывает файлы, формирует рекомендации по категориям товаров, и складывает в топик рекомендаций
+- `docker-compose-app.yml` - go-app
+  - это веб-сервис
+  - `/shop/*` методы
+    - публикует товары, 
+    - добавляет/удаляет товары из заблокированных, 
+    - публикует товары в опубликованные, если прошли "цензуру" (goka эмиттеры и процессоры)
+  - `client/*` методы
+    - поиск товара по имени
+    - отправка запроса пользователя в топик Kafka
+    - получение результатов поиска + рекомендации по той же категории найденного товара
 
 ## Пользователи Kafka
 
 - `shop-api` - отправка товаров в кластер
 - `client-api` - отправка запросов клиентов
 - `admin` - администрирование кластера
-- `kafka-c-N` (N от 1 до 3) - контроллеры 1го кластера
-- `kafka-b-N` (N от 1 до 3) - брокеры 1го кластера
+- `kafka-c-1` - контроллеры 1-го кластера
+- `kafka-b-1` - брокеры 1-го кластера
+- `kafka2-c-1` - контроллеры 2-го кластера
+- `kafka2-b-1` - брокеры 2-го кластера
 - `schema-registry` - регистрация схем
 - `kafka-ui` - для удобства проверки части результатов задания, можно смотреть в kafka-ui
 - `mirror-maker` - дублирование данных на 2-й кластер
@@ -53,22 +83,96 @@ make rebuild
 ## Топики
 
 - `products` - для публикации товаров из файла
-  - `data/shop-products.json` - файл с первыми 10-тью товарами
+  - `go-app/data/shop-products.json` - файл с первыми 10-тью товарами
 - `products_blocked` - список товаров, которые заблокированы, и не должны в итоге участвовать в обработке (аналитика и тп)
 - `products_published` - список товаров, которые прошли фильтрацию заблокированных товаров, и должны в итоге участвовать в обработке (аналитика и тп)
 - `recommendations` - рекомендации по товарам (результат аналитики)
+- TODO топик поискового запроса пользователей
 
 ## Скрипты для развертывания
 
-- `/scripts/certs.sh` - создание сертификатов
+- `/scripts/certs.sh` - создание сертификатов, настройки зеркалирования, python джоба рекомендаций
   - для простоты, сертификаты на оба кластера и другие сервисы идентичные
   - `/mount_dir` - где будут созданы необходимые сертификаты
 - `/scripts/topic.sh` - создание топиков
 - `/scripts/acl.sh` - выдача прав
-- `/scripts/schema-registry.sh` - регистрация JSON схем в сервисе schema-registry
-- `/scripts/kafka-connect.sh` - регистрация коннектора для сохранения данных в файл
+- `/scripts/schema-registry.sh` - регистрация JSON схемы в сервисе schema-registry
+- `/scripts/kafka-connect.sh` - регистрация коннекторов
 - `/scripts/wait_for_kafka.sh` - ожидание доступности кластера Kafka (ее брокеров и контроллеров), чтобы последующие операции в скриптах успешно выполнялись
 
+
+## Настройки для зеркалирования данных между кластерами
+
+```text
+# ─── Исключения ───
+topics.exclude = __.*|.*[\-\.]internal|.*[\-\.]._replica|_schemas|heartbeats|checkpoints|offset-syncs
+
+# ─── Кластеры ───
+clusters = kafka, kafka2
+
+kafka.bootstrap.servers = ${BOOTSTRAP_SERVER}
+kafka2.bootstrap.servers = ${BOOTSTRAP_SERVER2}
+
+# ─── SSL для исходного кластера (kafka) ───
+kafka.security.protocol = SSL
+kafka.ssl.truststore.type = JKS
+kafka.ssl.truststore.location = /etc/kafka/secrets/source/truststore.jks
+kafka.ssl.truststore.password = ${CA_PASS}
+kafka.ssl.keystore.type = PKCS12
+kafka.ssl.keystore.location = /etc/kafka/secrets/source/keystore.pkcs12
+kafka.ssl.keystore.password = ${CA_PASS}
+kafka.ssl.key.password = ${CA_PASS}
+kafka.ssl.endpoint.identification.algorithm = https
+
+# ─── SSL для целевого кластера (kafka2) ───
+kafka2.security.protocol = SSL
+kafka2.ssl.truststore.type = JKS
+kafka2.ssl.truststore.location = /etc/kafka/secrets/target/truststore.jks
+kafka2.ssl.truststore.password = ${CA_PASS}
+kafka2.ssl.keystore.type = PKCS12
+kafka2.ssl.keystore.location = /etc/kafka/secrets/target/keystore.pkcs12
+kafka2.ssl.keystore.password = ${CA_PASS}
+kafka2.ssl.key.password = ${CA_PASS}
+kafka2.ssl.endpoint.identification.algorithm = https
+
+# ─── Репликация kafka → kafka2 (всё, кроме recommendations) ───
+kafka->kafka2.enabled = true
+kafka->kafka2.topics = ^(?!recommendations$).*
+kafka->kafka2.groups = .*
+kafka->kafka2.sync.group.offsets.enabled = true
+kafka->kafka2.emit.checkpoints.enabled = true
+kafka->kafka2.emit.heartbeats.enabled = true
+
+# ─── Репликация kafka2 → kafka (только recommendations) ───
+kafka2->kafka.enabled = true
+kafka2->kafka.topics = recommendations
+kafka2->kafka.groups = ^$
+kafka2->kafka.sync.group.offsets.enabled = false
+kafka2->kafka.emit.checkpoints.enabled = false
+kafka2->kafka.emit.heartbeats.enabled = true
+
+# ─── Фактор репликации внутренних топиков ───
+replication.factor=1
+checkpoints.topic.replication.factor = 1
+heartbeats.topic.replication.factor = 1
+offset-syncs.topic.replication.factor = 1
+offset.storage.replication.factor = 1
+config.storage.replication.factor = 1
+status.storage.replication.factor = 1
+
+# ─── Синхронизация метаданных ───
+sync.topic.acls.enabled = true
+sync.topic.configs.enabled = true
+refresh.topics.enabled=true
+refresh.groups.enabled = true
+refresh.topics.interval.seconds = 60
+refresh.groups.interval.seconds = 60
+
+# ─── Политика именования реплицированных топиков ───
+# По умолчанию топики получат префикс: kafka.my-topic → kafka2
+# Если нужны одинаковые имена — раскомментируйте:
+replication.policy.class = org.apache.kafka.connect.mirror.IdentityReplicationPolicy
+```
 
 Данные в файле можно увидеть так:
 ```bash
@@ -82,9 +186,8 @@ make rebuild
 
 ## Поток данных
 
-TODO
 ```
-товары → Kafka → Goka → HDFS → Spark → recommendations → (client‑API) → витрина/поиск
+товары в файле → Goka (SHOP-API) → Kafka  → MM2  → kafka2 → HDFS → Spark → recommendations → (CLIENT‑API) → витрина/поиск
 ```
 
 ## Проверка
@@ -130,8 +233,11 @@ drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/products_p
 
 ### Результат формирования рекомендаций
 
-TODO скрин браузера с джобой http://localhost:8090/
-TODO скрин браузера с топиком в UI http://localhost:8080/ui/clusters/kafka2-kraft/all-topics/recommendations/messages?keySerde=String&valueSerde=SchemaRegistry&limit=100
+- [Топик рекомендаций после зеркалирования на 1-й кластер из 2-го](http://localhost:8080/ui/clusters/kafka-kraft/all-topics/recommendations/messages?keySerde=String&valueSerde=SchemaRegistry&limit=100)
+  - ![Топик рекомендаций после зеркалирования на 1-й кластер из 2-го](./screens/2.png)
+- [URL: spark://spark-master:7077](http://localhost:8090/)
+  - Отработки джобы:
+  - ![Отработки джобы](./screens/3.png)
 
 
 ### Мониторинг

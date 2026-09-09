@@ -182,7 +182,7 @@ for u in ${USER_ADMIN} ${USER_KAFKA_UI} ${USER_SCHEMA_REGISTRY} ${USER_SHOP_API}
   create_cert ${u}
 done
 
-for i in 1 2 3; do
+for i in 1; do
 
   ##### контроллеры
   create_cert "kafka-c-${i}"
@@ -351,6 +351,7 @@ mkdir -p "${SPARK_DIR}/apps"
 cat > "${SPARK_DIR}/apps/analytics.py" << EOF
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, to_json, struct, collect_list, regexp_replace
+from pyspark.sql import SparkSession
 
 spark = SparkSession.builder \
     .appName("product-recommendations") \
@@ -358,11 +359,18 @@ spark = SparkSession.builder \
 
 spark.sparkContext.setLogLevel("WARN")
 
-raw = spark.read.text("hdfs://hdfs-namenode:9000/topics/products_published/*/*")
+hadoop_conf = spark._jsc.hadoopConfiguration()
+hdfs_path = "hdfs://hdfs-namenode:9000/topics/products_published"
+hdfs = spark._jvm.org.apache.hadoop.fs.FileSystem.get(hadoop_conf)
+path = spark._jvm.org.apache.hadoop.fs.Path(hdfs_path)
 
-# Шаг 1: убираем внешние кавычки
-# Шаг 2: разэкранируем \" -> "
-# Шаг 3: парсим чистый JSON (spark.read.json сам выведет схему)
+if not hdfs.exists(path):
+    print("HDFS path does not exist yet: " + hdfs_path)
+    spark.stop()
+    exit(0)
+
+raw = spark.read.text(hdfs_path + "/*/*")
+
 clean = raw.withColumn(
     "no_quotes", regexp_replace(col("value"), r'^"|"$', '')
 ).withColumn(
@@ -371,10 +379,8 @@ clean = raw.withColumn(
 
 products = spark.read.json(clean.select("json_str").rdd.map(lambda r: r[0]))
 
-# Оставляем только нужные поля
 products = products.select("product_id", "name", "category", "brand")
 
-# Фильтруем записи, где нет product_id или category (битые/пустые не пройдут)
 products_valid = products.filter(col("product_id").isNotNull() & col("category").isNotNull())
 
 products_dedup = products_valid.dropDuplicates(["product_id"])
@@ -386,7 +392,6 @@ result = products_dedup.groupBy("category").agg(
     )).alias("value")
 ).select(col("category").cast("string").alias("key"), col("value"))
 
-# Пишем только если есть валидные данные
 if result.count() > 0:
 result.write.format("kafka") \
     .option("kafka.bootstrap.servers", "${BOOTSTRAP_SERVER2}") \
