@@ -76,9 +76,9 @@ make rebuild
 
 Список:
 - кластер 1:
-  - admin, kafka-b-1, kafka-b-2, kafka-b-3, kafka-c-1, kafka-c-2, kafka-c-3, mirror-maker, kafka-ui, schema-registry
+  - admin, kafka-b-1, kafka-c-1, mirror-maker, kafka-ui, schema-registry
 - кластер 2:
-  - admin, kafka2-b-1, kafka2-b-2, kafka2-b-3, kafka2-c-1,  kafka2-c-2, kafka2-c-3, mirror-maker, kafka-ui, schema-registry
+  - admin, kafka2-b-1, kafka2-c-1, mirror-maker, kafka-ui, schema-registry
 
 ## Топики
 
@@ -200,8 +200,12 @@ replication.policy.class = org.apache.kafka.connect.mirror.IdentityReplicationPo
     - ![состояние топиков 2-го кластера](./screens/1.png)
 
 #### SHOP-API
-TODO скрин браузера со списком заблокированных товаров
-TODO скрин браузера для добавления/удаления товара из заблокированных
+- [Список заблокированных товаров](http://localhost:8181/shop/products/blocked)
+  - ![Список заблокированных товаров](./screens/4.png)
+- `"add:Умные часы XYZ Pro" - `[Для добавления товара в заблокированные](http://localhost:8181/shop/products/blocked/add/%D0%A3%D0%BC%D0%BD%D1%8B%D0%B5%20%D1%87%D0%B0%D1%81%D1%8B%20XYZ%20Pro)
+  - ![add:Умные часы XYZ Pro](./screens/5.png)
+- `"remove:Умные часы XYZ Pro" - `[Для удаления товара их заблокированных](http://localhost:8181/shop/products/blocked/remove/%D0%A3%D0%BC%D0%BD%D1%8B%D0%B5%20%D1%87%D0%B0%D1%81%D1%8B%20XYZ%20Pro)
+  - ![remove:Умные часы XYZ Pro](./screens/6.png)
 
 #### CLIENT-API
 TODO скрин браузера с результатом поиска товара и рекомендации
