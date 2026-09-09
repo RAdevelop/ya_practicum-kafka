@@ -79,6 +79,14 @@ make rebuild
 Struct{store_id=store_001,images=[Struct{alt=Наушники SoundMax Pro,url=https://example.com/images/product2.jpg}],description=Беспроводные наушники с активным шумоподавлением и высоким качеством звука.,created_at=2024-01-15T10:00:00Z,index=products,specifications=Struct{water_resistance=IPX4,weight=250g,battery_life=30 hours,dimensions=20cm x 18cm x 8cm},tags=[наушники, аудио, беспроводные],updated_at=2024-01-20T12:00:00Z,price=Struct{amount=8999.0,currency=RUB},product_id=p002,name=Наушники SoundMax Pro,category=Электроника,stock=Struct{reserved=15,available=80},sku=SM-P002,brand=SoundMax}
 ```
 
+
+## Поток данных
+
+TODO
+```
+товары → Kafka → Goka → HDFS → Spark → recommendations → (client‑API) → витрина/поиск
+```
+
 ## Проверка
 
 ### Публикация и дублирование данных между кластерами

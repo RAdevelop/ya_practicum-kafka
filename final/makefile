@@ -151,9 +151,9 @@ rebuild:  ## Пересобрать кластер, создать топики,
 	@make topic
 	@make acl
 	@echo "$(GREEN)========= Starting apps  =========$(NC)"
-	@make wait-kafka
 	@$(DOCKER_COMPOSE) -f docker-compose.apps.yml  up -d --build
 	@make status
+	@make wait-kafka
 	@make schema-reg
 	@make kafka-connect
 	@echo "$(GREEN)========= Starting spark  =========$(NC)"
@@ -161,6 +161,7 @@ rebuild:  ## Пересобрать кластер, создать топики,
 	@make status
 	@echo "$(GREEN)✅ Cluster started$(NC)"
 
+# TODO @make wait-kafka
 # TODO #@make up-app
 
 .DEFAULT_GOAL := help

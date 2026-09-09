@@ -34,7 +34,7 @@ while (( SECONDS - start_time < max_seconds )); do
 done
 
 if [[ "$ready" != "true" ]]; then
-  echo "ERROR: Schema Registry did not start within 5 minutes!"
+  echo "ERROR: Schema Registry did not start within ${max_seconds} seconds!"
   exit 1
 fi
 
@@ -58,32 +58,6 @@ curl -s -X GET https://localhost:8081/subjects \
 printf "\n"
 echo "${YELLOW}Получить все версии схемы 'products-value'${NC}"
 curl -s -X GET https://localhost:8081/subjects/products-value/versions \
---cacert ${CACERT} \
---cert ${CERT} \
---key ${KEY} \
--H "Content-Type: application/vnd.schemaregistry.v1+json"
-
-printf "\n"
-
-echo "${YELLOW}Регистрируем схемы 'products_published-value'${NC}"
-curl -s -X POST https://localhost:8081/subjects/products_published-value/versions \
---cacert ${CACERT} \
---cert ${CERT} \
---key ${KEY} \
--H "Content-Type: application/vnd.schemaregistry.v1+json" \
--d "{\"schema\": ${SCHEMA}, \"schemaType\": \"JSON\"}"
-
-printf "\n"
-echo "${YELLOW}Проверка регистрации схемы 'products_published-value'${NC}"
-curl -s -X GET https://localhost:8081/subjects \
---cacert ${CACERT} \
---cert ${CERT} \
---key ${KEY} \
--H "Content-Type: application/vnd.schemaregistry.v1+json"
-
-printf "\n"
-echo "${YELLOW}Получить все версии схемы 'products_published-value'${NC}"
-curl -s -X GET https://localhost:8081/subjects/products_published-value/versions \
 --cacert ${CACERT} \
 --cert ${CERT} \
 --key ${KEY} \

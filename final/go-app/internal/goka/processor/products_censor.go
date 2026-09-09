@@ -18,20 +18,22 @@ import (
 )
 
 type ProductsCensor struct {
-	logger        *logger.Logger
-	config        config.Config
-	views         *api.Views
-	codecProducts *jsCodec.JsonCodec[models.Product]
-	ready         chan struct{}
+	logger              *logger.Logger
+	config              config.Config
+	views               *api.Views
+	codecInputProducts  *jsCodec.JsonCodec[models.Product]
+	codecOutputProducts *jsCodec.EncodingJson[models.Product]
+	ready               chan struct{}
 }
 
 func NewProductsCensor(config config.Config, views *api.Views, codecProducts *jsCodec.JsonCodec[models.Product], ready chan struct{}) *ProductsCensor {
 	return &ProductsCensor{
-		logger:        logger.New("[ProcessorProductsCensor]"),
-		config:        config,
-		views:         views,
-		codecProducts: codecProducts,
-		ready:         ready,
+		logger:              logger.New("[ProcessorProductsCensor]"),
+		config:              config,
+		views:               views,
+		codecInputProducts:  codecProducts,
+		codecOutputProducts: jsCodec.NewEncodingJson[models.Product](),
+		ready:               ready,
 	}
 }
 
@@ -92,8 +94,8 @@ func (c *ProductsCensor) Run(ctx context.Context) {
 
 	// определяем группу для цензуры
 	group := goka.DefineGroup(c.config.Processor.GroupProductsCensor,
-		goka.Input(goka.Stream(c.config.Topics.Products), c.codecProducts, c.processCensForProducts),
-		goka.Output(goka.Stream(c.config.Topics.ProductsPublished), c.codecProducts),
+		goka.Input(goka.Stream(c.config.Topics.Products), c.codecInputProducts, c.processCensForProducts),
+		goka.Output(goka.Stream(c.config.Topics.ProductsPublished), c.codecOutputProducts),
 	)
 
 	brokers := strings.Split(c.config.BootstrapServers, ",")

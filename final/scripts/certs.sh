@@ -351,7 +351,8 @@ mkdir -p "${SPARK_DIR}/apps"
 #Py не знаю, скрипт писала ИИ
 cat > "${SPARK_DIR}/apps/analytics.py" << EOF
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, to_json, struct, collect_list
+from pyspark.sql.functions import col, from_json, to_json, struct, collect_list, regexp_replace
+from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType, ArrayType
 
 spark = SparkSession.builder \
     .appName("product-recommendations") \
@@ -359,28 +360,74 @@ spark = SparkSession.builder \
 
 spark.sparkContext.setLogLevel("WARN")
 
-# Читаем JSON из HDFS
-products = spark.read.json("hdfs://hdfs-namenode:9000/topics/products_published/*/*")
-products = products.dropDuplicates(["product_id"])
+raw = spark.read.text("hdfs://hdfs-namenode:9000/topics/products_published/*/*")
 
-# Группируем по категории, собираем рекомендации
-result = products.groupBy("category").agg(
+schema = StructType([
+    StructField("product_id", StringType(), True),
+    StructField("name", StringType(), True),
+    StructField("description", StringType(), True),
+    StructField("price", StructType([
+        StructField("amount", DoubleType(), True),
+        StructField("currency", StringType(), True)
+    ]), True),
+    StructField("category", StringType(), True),
+    StructField("brand", StringType(), True),
+    StructField("stock", StructType([
+        StructField("available", IntegerType(), True),
+        StructField("reserved", IntegerType(), True)
+    ]), True),
+    StructField("sku", StringType(), True),
+    StructField("tags", ArrayType(StringType(), True), True),
+    StructField("images", ArrayType(StructType([
+        StructField("url", StringType(), True),
+        StructField("alt", StringType(), True)
+    ])), True),
+    StructField("specifications", StructType([
+        StructField("weight", StringType(), True),
+        StructField("dimensions", StringType(), True),
+        StructField("battery_life", StringType(), True),
+        StructField("water_resistance", StringType(), True)
+    ]), True),
+    StructField("created_at", StringType(), True),
+    StructField("updated_at", StringType(), True),
+    StructField("index", StringType(), True),
+    StructField("store_id", StringType(), True)
+])
+
+# Шаг 1: убираем внешние кавычки
+# Шаг 2: разэкранируем \" -> "
+# Шаг 3: парсим чистый JSON
+products = raw.withColumn(
+    "no_quotes", regexp_replace(col("value"), r'^"|"$', '')
+).withColumn(
+    "json_str", regexp_replace(col("no_quotes"), r'\\"', '"')
+).withColumn(
+    "data", from_json(col("json_str"), schema)
+).select("data.*")
+
+# products.show(truncate=False)
+# products.printSchema()
+
+products_dedup = products.dropDuplicates(["product_id"])
+
+result = products_dedup.groupBy("category").agg(
     to_json(struct(
         col("category"),
         collect_list(struct("product_id", "name", "brand")).alias("recommended_products")
     )).alias("value")
 ).select(col("category").cast("string").alias("key"), col("value"))
 
-# Пишем в Kafka
+# result.show(truncate=False)
+
 result.write.format("kafka") \
     .option("kafka.bootstrap.servers", "${BOOTSTRAP_SERVER2}") \
-    .option("topic", "recommendations") \
+    .option("topic", "${TOPIC_RECOMMENDATIONS}") \
     .option("kafka.security.protocol", "SSL") \
     .option("kafka.ssl.truststore.location", "/etc/kafka/secrets/truststore.jks") \
-    .option("kafka.ssl.truststore.password", "kafka123") \
+    .option("kafka.ssl.truststore.password", "${CA_PASS}") \
     .option("kafka.ssl.keystore.location", "/etc/kafka/secrets/keystore.pkcs12") \
-    .option("kafka.ssl.keystore.password", "kafka123") \
-    .option("kafka.ssl.key.password", "kafka123") \
+    .option("kafka.ssl.keystore.password", "${CA_PASS}") \
+    .option("kafka.ssl.key.password", "${CA_PASS}") \
     .save()
 
 spark.stop()

@@ -30,7 +30,7 @@ while (( SECONDS - start_time < max_seconds )); do
 done
 
 if [[ "$ready" != "true" ]]; then
-  echo "ERROR: Kafka Connect did not start within 5 minutes!"
+  echo "ERROR: Kafka Connect did not start within ${max_seconds} seconds!"
   exit 1
 fi
 
@@ -55,7 +55,7 @@ while (( SECONDS - start_time < max_seconds )); do
 done
 
 if [[ "$ready_hdfs" != "true" ]]; then
-  echo "ERROR: Kafka Connect HDFS did not start within 5 minutes!"
+  echo "ERROR: Kafka Connect HDFS did not start within ${max_seconds} seconds!"
   exit 1
 fi
 
@@ -64,6 +64,8 @@ sleep 10
 ################################ kafka-connect
 
 ######## FileStreamSinkConnector
+#curl -sk -X DELETE --cacert ${CACERT} https://localhost:8083/connectors/file-sink-products
+
 echo "${YELLOW}Put connectors file-sink-products${NC}"
 
 curl -s -X PUT https://localhost:8083/connectors/file-sink-products/config \
@@ -73,15 +75,7 @@ curl -s -X PUT https://localhost:8083/connectors/file-sink-products/config \
     "connector.class": "org.apache.kafka.connect.file.FileStreamSinkConnector",
     "tasks.max": "1",
     "topics": "'"${TOPIC_PRODUCTS_PUBLISHED}"'",
-    "file": "/var/lib/kafka-connect-data/products_published.jsonl",
-    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
-    "value.converter": "io.confluent.connect.json.JsonSchemaConverter",
-    "value.converter.schema.registry.url": "https://schema-registry:8081",
-    "value.converter.schema.registry.ssl.truststore.location": "/etc/kafka/secrets/truststore.jks",
-    "value.converter.schema.registry.ssl.truststore.password": "'"${CA_PASS}"'",
-    "value.converter.schema.registry.ssl.keystore.location": "/etc/kafka/secrets/keystore.pkcs12",
-    "value.converter.schema.registry.ssl.keystore.password": "'"${CA_PASS}"'",
-    "value.converter.schema.registry.ssl.key.password": "'"${CA_PASS}"'"
+    "file": "/var/lib/kafka-connect-data/products_published.jsonl"
   }' | jq
 
 # Статус коннектора
@@ -111,6 +105,9 @@ curl -s https://localhost:8083/connectors/file-sink-products/config \
 
 ################################ kafka-connect-hdfs
 ####### Hdfs3SinkConnector
+
+#curl -sk -X DELETE --cacert ${CACERT} https://localhost:8084/connectors/hdfs3-sink-products
+
 printf "\n"
 echo "${YELLOW}POST connectors Hdfs3SinkConnector${NC}"
 curl -s -X POST https://localhost:8084/connectors \
