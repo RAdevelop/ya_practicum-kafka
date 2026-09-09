@@ -76,10 +76,10 @@ func (c *ProductsCensor) Run(ctx context.Context) {
 	producerBuilder := goka.ProducerBuilderWithConfig(saramaConfig)
 
 	topicManagerConfig := goka.NewTopicManagerConfig()
-	topicManagerConfig.Table.Replication = 3
+	topicManagerConfig.Table.Replication = 1
 	topicManagerConfig.Table.CleanupPolicy = "compact"
 
-	topicManagerConfig.Stream.Replication = 3
+	topicManagerConfig.Stream.Replication = 1
 	topicManagerConfig.Stream.Retention = 7 * 24 * time.Hour
 	topicManagerConfig.Stream.CleanupPolicy = "delete"
 

@@ -25,8 +25,8 @@ export TOPIC_RECOMMENDATIONS := recommendations
 
 
 export COMMAND_CONFIG := /etc/kafka/secrets/admin/admin-client.properties
-export BOOTSTRAP_SERVER := kafka-b-1:9093,kafka-b-2:9093,kafka-b-3:9093
-export BOOTSTRAP_SERVER2 := kafka2-b-1:9093,kafka2-b-2:9093,kafka2-b-3:9093
+export BOOTSTRAP_SERVER := kafka-b-1:9093
+export BOOTSTRAP_SERVER2 := kafka2-b-1:9093
 
 # Загружаем .env глобально через include
 ifneq ($(wildcard $(ENV_FILE)),)
@@ -101,16 +101,16 @@ acl: ## Выдать права
 down: ## Остановить кластер
 	@echo "$(YELLOW)=== Stopping cluster ===$(NC)"
 	@$(DOCKER_COMPOSE) -f docker-compose.spark.yml down
-	@$(DOCKER_COMPOSE) -f docker-compose.apps.yml down
-	@$(DOCKER_COMPOSE) -f docker-compose.kafka.yml down
+	@$(DOCKER_COMPOSE) -f docker-compose.apps1.yml down
+	@$(DOCKER_COMPOSE) -f docker-compose.kafka1.yml down
 	@echo "$(GREEN)✅ Cluster stopped$(NC)"
 
 .PHONY: clean
 clean: ## Остановить кластер и удалить данные (volumes)
 	@echo "$(YELLOW)=== Cleaning cluster data ===$(NC)"
 	@$(DOCKER_COMPOSE) -f docker-compose.spark.yml down -v
-	@$(DOCKER_COMPOSE) -f docker-compose.apps.yml down -v
-	@$(DOCKER_COMPOSE) -f docker-compose.kafka.yml down -v
+	@$(DOCKER_COMPOSE) -f docker-compose.apps1.yml down -v
+	@$(DOCKER_COMPOSE) -f docker-compose.kafka1.yml down -v
 	@echo "$(GREEN)✅ Cluster data cleaned$(NC)"
 
 .PHONY: status
@@ -145,13 +145,13 @@ rebuild:  ## Пересобрать кластер, создать топики,
 	@make clean
 	@make ssl
 	@echo "$(GREEN)========= Starting kafka cluster =========$(NC)"
-	@$(DOCKER_COMPOSE) -f docker-compose.kafka.yml  up -d --build
+	@$(DOCKER_COMPOSE) -f docker-compose.kafka1.yml  up -d --build
 	@make status
 	@make wait-kafka
 	@make topic
 	@make acl
 	@echo "$(GREEN)========= Starting apps  =========$(NC)"
-	@$(DOCKER_COMPOSE) -f docker-compose.apps.yml  up -d --build
+	@$(DOCKER_COMPOSE) -f docker-compose.apps1.yml  up -d --build
 	@make status
 	@make wait-kafka
 	@make schema-reg

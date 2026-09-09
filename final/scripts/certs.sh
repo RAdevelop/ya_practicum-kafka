@@ -269,13 +269,13 @@ kafka2->kafka.emit.checkpoints.enabled = false
 kafka2->kafka.emit.heartbeats.enabled = true
 
 # ─── Фактор репликации внутренних топиков ───
-replication.factor=3
-checkpoints.topic.replication.factor = 3
-heartbeats.topic.replication.factor = 3
-offset-syncs.topic.replication.factor = 3
-offset.storage.replication.factor = 3
-config.storage.replication.factor = 3
-status.storage.replication.factor = 3
+replication.factor=1
+checkpoints.topic.replication.factor = 1
+heartbeats.topic.replication.factor = 1
+offset-syncs.topic.replication.factor = 1
+offset.storage.replication.factor = 1
+config.storage.replication.factor = 1
+status.storage.replication.factor = 1
 
 # ─── Синхронизация метаданных ───
 sync.topic.acls.enabled = true
@@ -350,8 +350,7 @@ mkdir -p "${SPARK_DIR}/apps"
 #Py не знаю, скрипт писала ИИ
 cat > "${SPARK_DIR}/apps/analytics.py" << EOF
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, from_json, to_json, struct, collect_list, regexp_replace
-from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType, ArrayType
+from pyspark.sql.functions import col, to_json, struct, collect_list, regexp_replace
 
 spark = SparkSession.builder \
     .appName("product-recommendations") \
@@ -361,53 +360,24 @@ spark.sparkContext.setLogLevel("WARN")
 
 raw = spark.read.text("hdfs://hdfs-namenode:9000/topics/products_published/*/*")
 
-schema = StructType([
-    StructField("product_id", StringType(), True),
-    StructField("name", StringType(), True),
-    StructField("description", StringType(), True),
-    StructField("price", StructType([
-        StructField("amount", DoubleType(), True),
-        StructField("currency", StringType(), True)
-    ]), True),
-    StructField("category", StringType(), True),
-    StructField("brand", StringType(), True),
-    StructField("stock", StructType([
-        StructField("available", IntegerType(), True),
-        StructField("reserved", IntegerType(), True)
-    ]), True),
-    StructField("sku", StringType(), True),
-    StructField("tags", ArrayType(StringType(), True), True),
-    StructField("images", ArrayType(StructType([
-        StructField("url", StringType(), True),
-        StructField("alt", StringType(), True)
-    ])), True),
-    StructField("specifications", StructType([
-        StructField("weight", StringType(), True),
-        StructField("dimensions", StringType(), True),
-        StructField("battery_life", StringType(), True),
-        StructField("water_resistance", StringType(), True)
-    ]), True),
-    StructField("created_at", StringType(), True),
-    StructField("updated_at", StringType(), True),
-    StructField("index", StringType(), True),
-    StructField("store_id", StringType(), True)
-])
-
 # Шаг 1: убираем внешние кавычки
 # Шаг 2: разэкранируем \" -> "
-# Шаг 3: парсим чистый JSON
-products = raw.withColumn(
+# Шаг 3: парсим чистый JSON (spark.read.json сам выведет схему)
+clean = raw.withColumn(
     "no_quotes", regexp_replace(col("value"), r'^"|"$', '')
 ).withColumn(
     "json_str", regexp_replace(col("no_quotes"), r'\\"', '"')
-).withColumn(
-    "data", from_json(col("json_str"), schema)
-).select("data.*")
+)
 
-# products.show(truncate=False)
-# products.printSchema()
+products = spark.read.json(clean.select("json_str").rdd.map(lambda r: r[0]))
 
-products_dedup = products.dropDuplicates(["product_id"])
+# Оставляем только нужные поля
+products = products.select("product_id", "name", "category", "brand")
+
+# Фильтруем записи, где нет product_id или category (битые/пустые не пройдут)
+products_valid = products.filter(col("product_id").isNotNull() & col("category").isNotNull())
+
+products_dedup = products_valid.dropDuplicates(["product_id"])
 
 result = products_dedup.groupBy("category").agg(
     to_json(struct(
@@ -416,8 +386,8 @@ result = products_dedup.groupBy("category").agg(
     )).alias("value")
 ).select(col("category").cast("string").alias("key"), col("value"))
 
-# result.show(truncate=False)
-
+# Пишем только если есть валидные данные
+if result.count() > 0:
 result.write.format("kafka") \
     .option("kafka.bootstrap.servers", "${BOOTSTRAP_SERVER2}") \
     .option("topic", "${TOPIC_RECOMMENDATIONS}") \
@@ -428,6 +398,8 @@ result.write.format("kafka") \
     .option("kafka.ssl.keystore.password", "${CA_PASS}") \
     .option("kafka.ssl.key.password", "${CA_PASS}") \
     .save()
+else:
+    print("No valid products found, skipping write to Kafka")
 
 spark.stop()
 

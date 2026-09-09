@@ -56,7 +56,7 @@ func (pb *ProductsBlocked) Run(ctx context.Context) {
 	saramaConfig.Producer.Return.Errors = true
 
 	saramaConfig.Consumer.Return.Errors = true
-	saramaConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
+	saramaConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
 	saramaConfig.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{
 		sarama.NewBalanceStrategyRoundRobin(),
 	}
@@ -69,10 +69,10 @@ func (pb *ProductsBlocked) Run(ctx context.Context) {
 	producerBuilder := goka.ProducerBuilderWithConfig(saramaConfig)
 
 	topicManagerConfig := goka.NewTopicManagerConfig()
-	topicManagerConfig.Table.Replication = 3
+	topicManagerConfig.Table.Replication = 1
 	topicManagerConfig.Table.CleanupPolicy = "compact"
 
-	topicManagerConfig.Stream.Replication = 3
+	topicManagerConfig.Stream.Replication = 1
 	topicManagerConfig.Stream.Retention = 7 * 24 * time.Hour
 	topicManagerConfig.Stream.CleanupPolicy = "delete"
 

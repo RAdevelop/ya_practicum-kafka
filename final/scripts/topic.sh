@@ -23,11 +23,11 @@ create_topic() {
   --create \
   --topic ${TOPIC_NAME} \
   --partitions ${PARTITIONS} \
-  --replication-factor 3 \
+  --replication-factor 1 \
   --config cleanup.policy=delete \
   --config retention.ms=604800000 \
   --config segment.bytes=536870912 \
-  --config min.insync.replicas=3
+  --config min.insync.replicas=1
 
   echo "\n"
   echo "${YELLOW}Describe topic: ${TOPIC_NAME}${NC}"
@@ -39,14 +39,14 @@ create_topic() {
 }
 
 for t in ${TOPIC_PRODUCTS} ${TOPIC_PRODUCTS_PUBLISHED} ${TOPIC_RECOMMENDATIONS}; do
-  create_topic "kafka-b-1" ${BOOTSTRAP_SERVER} ${t} 3
+  create_topic "kafka-b-1" ${BOOTSTRAP_SERVER} ${t} 1
 done
 
 create_topic "kafka-b-1" ${BOOTSTRAP_SERVER} ${TOPIC_PRODUCTS_BLOCKED} 1
 
 
 for t in ${TOPIC_PRODUCTS} ${TOPIC_PRODUCTS_PUBLISHED} ${TOPIC_RECOMMENDATIONS}; do
-  create_topic "kafka2-b-1" ${BOOTSTRAP_SERVER2} ${t} 3
+  create_topic "kafka2-b-1" ${BOOTSTRAP_SERVER2} ${t} 1
 done
 
 create_topic "kafka2-b-1" ${BOOTSTRAP_SERVER2} ${TOPIC_PRODUCTS_BLOCKED} 1

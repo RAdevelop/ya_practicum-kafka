@@ -131,7 +131,7 @@ curl -s -X POST https://localhost:8084/connectors \
       "locale": "en",
       "timezone": "UTC",
       "confluent.topic.bootstrap.servers": "kafka2-b-1:9093,kafka2-b-2:9093,kafka2-b-3:9093",
-      "confluent.topic.replication.factor": "3",
+      "confluent.topic.replication.factor": "1",
       "confluent.topic.security.protocol": "SSL",
       "confluent.topic.ssl.truststore.location": "/etc/kafka/secrets/truststore.jks",
       "confluent.topic.ssl.truststore.password": "'"${CA_PASS}"'",
