@@ -222,8 +222,7 @@ MIRROR_MAKER_DIR="${TMP_DIR}/${USER_MIRROR_MAKER}/config"
 mkdir -p ${MIRROR_MAKER_DIR}
 cat > "${MIRROR_MAKER_DIR}/mirror-maker.properties" << EOF
 # ─── Исключения ───
-topics.exclude = __.*|.*[\-\.]internal|.*[\-\.]._replica|_schemas
-
+topics.exclude = __.*|.*[\-\.]internal|.*[\-\.]._replica|_schemas|heartbeats|checkpoints|offset-syncs
 
 # ─── Кластеры ───
 clusters = kafka, kafka2
@@ -253,21 +252,21 @@ kafka2.ssl.keystore.password = ${CA_PASS}
 kafka2.ssl.key.password = ${CA_PASS}
 kafka2.ssl.endpoint.identification.algorithm = https
 
-# ─── Репликация kafka → kafka2 ───
+# ─── Репликация kafka → kafka2 (всё, кроме recommendations) ───
 kafka->kafka2.enabled = true
-kafka->kafka2.topics = .*
+kafka->kafka2.topics = ^(?!recommendations$).*
 kafka->kafka2.groups = .*
 kafka->kafka2.sync.group.offsets.enabled = true
 kafka->kafka2.emit.checkpoints.enabled = true
 kafka->kafka2.emit.heartbeats.enabled = true
 
-# ─── Репликация kafka2 → kafka (если нужна двусторонняя) ───
-# kafka2->kafka.enabled = true
-# kafka2->kafka.topics = .*
-# kafka2->kafka.groups = .*
-# kafka2->kafka.sync.group.offsets.enabled = true
-# kafka2->kafka.emit.checkpoints.enabled = true
-# kafka2->kafka.emit.heartbeats.enabled = true
+# ─── Репликация kafka2 → kafka (только recommendations) ───
+kafka2->kafka.enabled = true
+kafka2->kafka.topics = recommendations
+kafka2->kafka.groups = ^$
+kafka2->kafka.sync.group.offsets.enabled = false
+kafka2->kafka.emit.checkpoints.enabled = false
+kafka2->kafka.emit.heartbeats.enabled = true
 
 # ─── Фактор репликации внутренних топиков ───
 replication.factor=3

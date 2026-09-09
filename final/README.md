@@ -75,8 +75,8 @@ make rebuild
  docker exec -it kafka-connect cat /var/lib/kafka-connect-data/products_published.jsonl
 ```
 пример:
-```text
-Struct{store_id=store_001,images=[Struct{alt=Наушники SoundMax Pro,url=https://example.com/images/product2.jpg}],description=Беспроводные наушники с активным шумоподавлением и высоким качеством звука.,created_at=2024-01-15T10:00:00Z,index=products,specifications=Struct{water_resistance=IPX4,weight=250g,battery_life=30 hours,dimensions=20cm x 18cm x 8cm},tags=[наушники, аудио, беспроводные],updated_at=2024-01-20T12:00:00Z,price=Struct{amount=8999.0,currency=RUB},product_id=p002,name=Наушники SoundMax Pro,category=Электроника,stock=Struct{reserved=15,available=80},sku=SM-P002,brand=SoundMax}
+```json lines
+{"product_id":"p001","name":"Умные часы XYZ Pro","description":"Умные часы с функцией мониторинга здоровья, GPS и уведомлениями.","price":{"amount":4999.99,"currency":"RUB"},"category":"Электроника","brand":"XYZ","stock":{"available":150,"reserved":20},"sku":"XYZ-P001","tags":["умные часы","гаджеты","технологии"],"images":[{"url":"https://example.com/images/product1.jpg","alt":"Умные часы XYZ Pro - вид спереди"}],"specifications":{"weight":"50g","dimensions":"42mm x 36mm x 10mm","battery_life":"24 hours","water_resistance":"IP68"},"created_at":"2024-01-01T12:00:00Z","updated_at":"2024-01-10T15:30:00Z","index":"products","store_id":"store_001"}
 ```
 
 
