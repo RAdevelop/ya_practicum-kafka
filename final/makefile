@@ -101,6 +101,7 @@ acl: ## Выдать права
 .PHONY: down
 down: ## Остановить кластер
 	@echo "$(YELLOW)=== Stopping cluster ===$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose-go.yml down
 	@$(DOCKER_COMPOSE) -f docker-compose.spark.yml down
 	@$(DOCKER_COMPOSE) -f docker-compose.apps1.yml down
 	@$(DOCKER_COMPOSE) -f docker-compose.kafka1.yml down
@@ -109,6 +110,7 @@ down: ## Остановить кластер
 .PHONY: clean
 clean: ## Остановить кластер и удалить данные (volumes)
 	@echo "$(YELLOW)=== Cleaning cluster data ===$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose-go.yml down -v
 	@$(DOCKER_COMPOSE) -f docker-compose.spark.yml down -v
 	@$(DOCKER_COMPOSE) -f docker-compose.apps1.yml down -v
 	@$(DOCKER_COMPOSE) -f docker-compose.kafka1.yml down -v
