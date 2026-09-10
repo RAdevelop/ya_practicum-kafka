@@ -19,6 +19,7 @@ type Config struct {
 	Client           *client         `envPrefix:"CLIENT"`
 	ViewTable        *viewTable
 	Processor        *processor `envPrefix:"PROCESSOR"`
+	File             *file      `envPrefix:"FILE"`
 }
 
 func (c *Config) Load(envFilePath string) {
@@ -105,6 +106,11 @@ type processor struct {
 	GroupProductsBlocked         goka.Group `env:"GROUP_PRODUCTS_BLOCKED" envDefault:"group-products-blocked"`
 	GroupProductsCensor          goka.Group `env:"GROUP_PRODUCTS_CENSOR" envDefault:"group-products-censor"`
 	GroupProductsRecommendations goka.Group `env:"GROUP_PRODUCTS_RECOMMENDATIONS" envDefault:"group-products-recommendations"`
+}
+
+type file struct {
+	ProductsJson  string `env:"PRODUCTS_JSON" envDefault:""`
+	ProductsJsonl string `env:"PRODUCTS_JSONL" envDefault:""`
 }
 
 func (c *Config) LoadShopConfigTLS() (*tls.Config, error) {

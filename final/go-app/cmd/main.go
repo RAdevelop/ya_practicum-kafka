@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"os"
 	"os/signal"
@@ -17,6 +16,7 @@ import (
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/processor"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/store"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/view"
+	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/helper"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/logger"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/models"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/serializer"
@@ -177,7 +177,7 @@ func main() {
 	}()
 
 	// 7. Публикация товаров (после готовности всех процессоров)
-	products, err := loadProducts("data/shop-products.json")
+	products, err := helper.LoadProductsFromJSON(cfg.File.ProductsJson)
 	if err != nil {
 		appLogger.Error("Failed to load products: %v", err)
 	}
@@ -200,7 +200,8 @@ func main() {
 
 func emitProducts(wg *sync.WaitGroup, logger *logger.Logger, products []models.Product, emitters *api.Emitters, config config.Config) {
 	defer wg.Done()
-
+	//TODO del return
+	return
 	if len(products) == 0 {
 		return
 	}
@@ -223,19 +224,4 @@ func emitProducts(wg *sync.WaitGroup, logger *logger.Logger, products []models.P
 	}
 
 	logger.Info("All products published, count: %d", len(products))
-}
-
-// loadProducts загружает товары из JSON-файла
-func loadProducts(filePath string) ([]models.Product, error) {
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	var products []models.Product
-	if err := json.Unmarshal(data, &products); err != nil {
-		return nil, err
-	}
-
-	return products, nil
 }
