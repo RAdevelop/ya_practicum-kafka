@@ -32,17 +32,31 @@ func main() {
 	cfg.Load(".env")
 
 	// 1. Инициализация кодека
-	serialize, err := serializer.NewJson[models.Product](cfg)
+	// для сериализации продуктов
+	serializeProduct, err := serializer.NewJson[models.Product](cfg)
 	if err != nil {
-		appLogger.Error("Failed to create json serializer: %v", err)
+		appLogger.Error("Failed to create json serializeProduct: %v", err)
 		return
 	}
 	defer func() {
-		if err := serialize.Close(); err != nil {
-			appLogger.Error("Failed to close serializer: %v", err)
+		if err := serializeProduct.Close(); err != nil {
+			appLogger.Error("Failed to close serializeProduct: %v", err)
 		}
 	}()
-	codecProducts := jsCodec.NewJsonCodec[models.Product](cfg.Topics.Products, serialize)
+	codecProducts := jsCodec.NewJsonCodec[models.Product](cfg.Topics.Products, serializeProduct)
+
+	// для сериализации пользовательских запросов
+	serializeClientSearch, err := serializer.NewJson[models.ClientSearch](cfg)
+	if err != nil {
+		appLogger.Error("Failed to create json serializeClientSearch: %v", err)
+		return
+	}
+	defer func() {
+		if err := serializeProduct.Close(); err != nil {
+			appLogger.Error("Failed to close serializeClientSearch: %v", err)
+		}
+	}()
+	codecClientSearch := jsCodec.NewJsonCodec[models.ClientSearch](cfg.Topics.Products, serializeClientSearch)
 
 	// 2. Создание эмиттеров
 	// эмиттер отправка не фильтрованных товаров в Кафка
@@ -69,9 +83,22 @@ func main() {
 		}
 	}()
 
+	// эмиттер отправки пользовательских поисковых запросов
+	clientSearchEmitter, err := emitter.NewClientSearch(cfg, codecClientSearch)
+	if err != nil {
+		appLogger.Error("Failed to create ClientSearchEmitter: %v", err)
+		return
+	}
+	defer func() {
+		if err := clientSearchEmitter.Finish(); err != nil {
+			appLogger.Error("Failed to finish ClientSearchEmitter: %v", err)
+		}
+	}()
+
 	emitters := &api.Emitters{
 		ProductsEmitter:        productsEmitter,
 		BlockedProductsEmitter: blockedProductsEmitter,
+		ClientSearchEmitter:    clientSearchEmitter,
 	}
 
 	// 3. Запуск процессоров с сигналами готовности

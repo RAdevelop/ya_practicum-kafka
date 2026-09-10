@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["query_id", "user_id", "search_term", "timestamp"],
+  "properties": {
+    "query_id": {"type": "string"},
+    "user_id": {"type": "string"},
+    "search_term": {"type": "string"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "source": {"type": "string"}
+  }
+}

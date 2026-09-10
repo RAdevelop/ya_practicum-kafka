@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/config"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/emitter"
@@ -17,6 +18,7 @@ import (
 type Emitters struct {
 	ProductsEmitter        *emitter.Products
 	BlockedProductsEmitter *emitter.ProductsBlocked
+	ClientSearchEmitter    *emitter.ClientSearch
 }
 type Views struct {
 	BlockedProductsView         *goka.View
@@ -165,6 +167,21 @@ func (h *Handlers) GetClientSearch(w http.ResponseWriter, r *http.Request) {
 		}
 
 		h.writeJSON(w, http.StatusOK, searchResult)
+
+		// отправим данные для поискового запроса в топик пользовательских запросов
+		clientSearch := models.ClientSearch{
+			QueryId:    "UUID",
+			UserId:     "123",
+			SearchTerm: productName,
+			Timestamp:  time.Now(),
+			Source:     "web",
+		}
+
+		err = h.emitters.ClientSearchEmitter.EmitSync(clientSearch.UserId, clientSearch)
+		if err != nil {
+			h.logger.Error("Failed to emit ClientSearch for event: %s, err: %v", clientSearch, err)
+		}
+
 		return
 	}
 

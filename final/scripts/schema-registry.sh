@@ -9,7 +9,8 @@ KEY="./mount_dir/schema-registry/creds/keystore.key"
 
 SCHEMAS_DIR="./schemas"
 
-SCHEMA=$(cat ${SCHEMAS_DIR}/products.json | jq -c | jq -R)
+SCHEMA_PRODUCTS=$(cat ${SCHEMAS_DIR}/products.json | jq -c | jq -R)
+SCHEMA_CLIENT_SEARCH=$(cat ${SCHEMAS_DIR}/client-search.json | jq -c | jq -R)
 
 
 
@@ -45,7 +46,7 @@ curl -s -X POST https://localhost:8081/subjects/products-value/versions \
 --cert ${CERT} \
 --key ${KEY} \
 -H "Content-Type: application/vnd.schemaregistry.v1+json" \
--d "{\"schema\": ${SCHEMA}, \"schemaType\": \"JSON\"}"
+-d "{\"schema\": ${SCHEMA_PRODUCTS}, \"schemaType\": \"JSON\"}"
 
 printf "\n"
 echo "${YELLOW}Проверка регистрации схемы 'products-value'${NC}"
@@ -58,6 +59,33 @@ curl -s -X GET https://localhost:8081/subjects \
 printf "\n"
 echo "${YELLOW}Получить все версии схемы 'products-value'${NC}"
 curl -s -X GET https://localhost:8081/subjects/products-value/versions \
+--cacert ${CACERT} \
+--cert ${CERT} \
+--key ${KEY} \
+-H "Content-Type: application/vnd.schemaregistry.v1+json"
+
+printf "\n"
+
+
+echo "${YELLOW}Регистрируем схемы 'client-search-value'${NC}"
+curl -s -X POST https://localhost:8081/subjects/client-search-value/versions \
+--cacert ${CACERT} \
+--cert ${CERT} \
+--key ${KEY} \
+-H "Content-Type: application/vnd.schemaregistry.v1+json" \
+-d "{\"schema\": ${SCHEMA_CLIENT_SEARCH}, \"schemaType\": \"JSON\"}"
+
+printf "\n"
+echo "${YELLOW}Проверка регистрации схемы 'client-search-value'${NC}"
+curl -s -X GET https://localhost:8081/subjects \
+--cacert ${CACERT} \
+--cert ${CERT} \
+--key ${KEY} \
+-H "Content-Type: application/vnd.schemaregistry.v1+json"
+
+printf "\n"
+echo "${YELLOW}Получить все версии схемы 'client-search-value'${NC}"
+curl -s -X GET https://localhost:8081/subjects/client-search-value/versions \
 --cacert ${CACERT} \
 --cert ${CERT} \
 --key ${KEY} \

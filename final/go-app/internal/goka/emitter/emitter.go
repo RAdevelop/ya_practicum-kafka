@@ -1,6 +1,7 @@
 package emitter
 
 import (
+	"crypto/tls"
 	"strings"
 
 	"github.com/IBM/sarama"
@@ -14,7 +15,12 @@ type Products struct {
 
 func NewProducts(config config.Config, codec goka.Codec) (*Products, error) {
 
-	emitter, err := newEmitter(config.Topics.Products, config, codec)
+	tlsConfig, err := config.LoadShopConfigTLS()
+	if err != nil {
+		return nil, err
+	}
+
+	emitter, err := newEmitter(config.Topics.Products, config, codec, tlsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -30,12 +36,38 @@ type ProductsBlocked struct {
 
 func NewProductsBlocked(config config.Config, codec goka.Codec) (*ProductsBlocked, error) {
 
-	emitter, err := newEmitter(config.Topics.ProductsBlocked, config, codec)
+	tlsConfig, err := config.LoadShopConfigTLS()
+	if err != nil {
+		return nil, err
+	}
+
+	emitter, err := newEmitter(config.Topics.ProductsBlocked, config, codec, tlsConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ProductsBlocked{
+		shop: shop{emitter: emitter},
+	}, nil
+}
+
+type ClientSearch struct {
+	shop
+}
+
+func NewClientSearch(config config.Config, codec goka.Codec) (*ClientSearch, error) {
+
+	tlsConfig, err := config.LoadClientConfigTLS()
+	if err != nil {
+		return nil, err
+	}
+
+	emitter, err := newEmitter(config.Topics.ClientSearch, config, codec, tlsConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ClientSearch{
 		shop: shop{emitter: emitter},
 	}, nil
 }
@@ -56,11 +88,7 @@ func (em *shop) EmitSync(key string, msg interface{}) error {
 	return em.emitter.EmitSync(key, msg)
 }
 
-func newEmitter(topic string, config config.Config, codec goka.Codec) (*goka.Emitter, error) {
-	tlsConfig, err := config.LoadShopConfigTLS()
-	if err != nil {
-		return nil, err
-	}
+func newEmitter(topic string, config config.Config, codec goka.Codec, tlsConfig *tls.Config) (*goka.Emitter, error) {
 
 	saramaConfig := sarama.NewConfig()
 	saramaConfig.Net.TLS.Enable = true
