@@ -1,0 +1,18 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/go-app/Dockerfile
+    container_name: go-app
+    hostname: go-app
+    restart: unless-stopped
+    networks:
+      - kafka-network
+    volumes:
+      - ./mount_dir/kafka-connect/output:/app/data/products-published
+    ports:
+      - 8181:8181
+
+networks:
+  kafka-network:
+    driver: bridge

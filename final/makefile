@@ -135,7 +135,7 @@ wait20: ## Подождать 20 секунд для готовности Kafka
 .PHONY: up-app
 up-app: ## Запустить go-app
 	@echo "$(GREEN)=== Starting go-app ===$(NC)"
-	@$(DOCKER_COMPOSE) -f docker-compose-app.yml up -d --no-deps --build app
+	@$(DOCKER_COMPOSE) -f docker-compose-go.yml up -d --no-deps --build app
 	@echo "$(GREEN)✅ go-app started$(NC)"
 	@make status
 
@@ -161,8 +161,7 @@ rebuild:  ## Пересобрать кластер, создать топики,
 	@$(DOCKER_COMPOSE) -f docker-compose.spark.yml  up -d --build
 	@make status
 	@echo "$(GREEN)✅ Cluster started$(NC)"
-
-# TODO @make wait-kafka
-# TODO #@make up-app
+	@make wait-kafka
+	@make up-app
 
 .DEFAULT_GOAL := help
