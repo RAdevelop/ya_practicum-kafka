@@ -227,8 +227,7 @@ func main() {
 
 func emitProducts(wg *sync.WaitGroup, logger *logger.Logger, products []models.Product, emitters *api.Emitters, config config.Config) {
 	defer wg.Done()
-	//TODO del return
-	return
+
 	if len(products) == 0 {
 		return
 	}

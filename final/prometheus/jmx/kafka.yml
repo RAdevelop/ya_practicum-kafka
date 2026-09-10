@@ -1,0 +1,51 @@
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+rules:
+  # Базовые метрики брокера
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=MessagesInPerSec><>Count'
+    name: kafka_server_broker_topic_metrics_messages_in_per_sec_count
+    type: COUNTER
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=BytesInPerSec, topic=(.+)><>Count'
+    name: kafka_server_broker_topic_metrics_bytes_in_per_sec_count
+    type: COUNTER
+    labels:
+      topic: $1
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=BytesOutPerSec, topic=(.+)><>Count'
+    name: kafka_server_broker_topic_metrics_bytes_out_per_sec_count
+    type: COUNTER
+    labels:
+      topic: $1
+  # Метрики контроллера
+  - pattern: 'kafka.controller<type=KafkaController, name=ActiveControllerCount><>Value'
+    name: kafka_controller_active_controller_count
+    type: GAUGE
+  # Метрики партиций
+  - pattern: 'kafka.server<type=ReplicaManager, name=UnderReplicatedPartitions><>Value'
+    name: kafka_server_replica_manager_under_replicated_partitions
+    type: GAUGE
+  - pattern: 'kafka.server<type=ReplicaManager, name=PartitionCount><>Value'
+    name: kafka_server_replica_manager_partition_count
+    type: GAUGE
+  # Метрики запросов
+  - pattern: 'kafka.network<type=RequestMetrics, name=TotalTimeMs, request=(.+)><>Count'
+    name: kafka_network_request_metrics_total_time_ms_count
+    type: COUNTER
+    labels:
+      request: $1
+  # Логи (log dirs)
+  - pattern: 'kafka.log<type=LogSize, name=Size, topic=(.+), partition=(.+)><>Value'
+    name: kafka_log_log_size
+    type: GAUGE
+    labels:
+      topic: $1
+      partition: $2
+  # Isr
+  - pattern: 'kafka.server<type=ReplicaManager, name=IsrShrinksPerSec><>Count'
+    name: kafka_server_replica_manager_isr_shrinks_per_sec_count
+    type: COUNTER
+  # Подключения
+  - pattern: 'kafka.server<type=SocketServer, name=connection-count><>Value'
+    name: kafka_server_socket_server_connection_count
+    type: GAUGE
+  # Любые остальные — общий catch-all
+  - pattern: '.*'

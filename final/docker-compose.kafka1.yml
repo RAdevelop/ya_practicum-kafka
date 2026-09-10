@@ -30,6 +30,7 @@ x-kafka_controller:
     KAFKA_SSL_CLIENT_AUTH: "required"
     KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
     KAFKA_SUPER_USERS: "User:CN=admin,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=mirror-maker,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-ui,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=schema-registry,L=Moscow,OU=Practice,O=Yandex,C=RU;"
+    KAFKA_OPTS: "-javaagent:/opt/jmx_exporter/jmx_prometheus_javaagent.jar=7071:/opt/jmx_exporter/kafka.yml"
 
 x-kafka_broker:
   env: &kafka-broker-env
@@ -60,6 +61,7 @@ x-kafka_broker:
     KAFKA_SSL_CLIENT_AUTH: "required"
     KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
     KAFKA_SUPER_USERS: "User:CN=admin,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-b-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-c-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=mirror-maker,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-ui,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=schema-registry,L=Moscow,OU=Practice,O=Yandex,C=RU;"
+    KAFKA_OPTS: "-javaagent:/opt/jmx_exporter/jmx_prometheus_javaagent.jar=7071:/opt/jmx_exporter/kafka.yml"
 
 x-kafka2:
   image: &x-kafka2-image
@@ -92,6 +94,7 @@ x-kafka2_controller:
     KAFKA_SSL_CLIENT_AUTH: "required"
     KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
     KAFKA_SUPER_USERS: "User:CN=admin,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka2-b-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka2-c-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=mirror-maker,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-ui,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=schema-registry,L=Moscow,OU=Practice,O=Yandex,C=RU;"
+    KAFKA_OPTS: "-javaagent:/opt/jmx_exporter/jmx_prometheus_javaagent.jar=7071:/opt/jmx_exporter/kafka.yml"
 
 x-kafka2_broker:
   env: &kafka2-broker-env
@@ -122,6 +125,7 @@ x-kafka2_broker:
     KAFKA_SSL_CLIENT_AUTH: "required"
     KAFKA_AUTHORIZER_CLASS_NAME: "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
     KAFKA_SUPER_USERS: "User:CN=admin,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka2-b-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka2-c-1,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=mirror-maker,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=kafka-ui,L=Moscow,OU=Practice,O=Yandex,C=RU;User:CN=schema-registry,L=Moscow,OU=Practice,O=Yandex,C=RU;"
+    KAFKA_OPTS: "-javaagent:/opt/jmx_exporter/jmx_prometheus_javaagent.jar=7071:/opt/jmx_exporter/kafka.yml"
 
 services:
   kafka-c-1:
@@ -135,6 +139,8 @@ services:
     volumes:
       - kafka-c-1-data:/var/lib/kafka/data
       - ./mount_dir/kafka-c-1/creds:/etc/kafka/secrets
+      - ./prometheus/jmx/jmx_prometheus_javaagent.jar:/opt/jmx_exporter/jmx_prometheus_javaagent.jar:ro
+      - ./prometheus/jmx/kafka.yml:/opt/jmx_exporter/kafka.yml:ro
     networks:
       - kafka-network
     restart: unless-stopped
@@ -150,6 +156,8 @@ services:
     volumes:
       - kafka-b-1-data:/var/lib/kafka/data
       - ./mount_dir/kafka-b-1/creds:/etc/kafka/secrets
+      - ./prometheus/jmx/jmx_prometheus_javaagent.jar:/opt/jmx_exporter/jmx_prometheus_javaagent.jar:ro
+      - ./prometheus/jmx/kafka.yml:/opt/jmx_exporter/kafka.yml:ro
     networks:
       - kafka-network
     restart: unless-stopped
@@ -169,6 +177,8 @@ services:
     volumes:
       - kafka2-c-1-data:/var/lib/kafka/data
       - ./mount_dir/kafka2-c-1/creds:/etc/kafka/secrets
+      - ./prometheus/jmx/jmx_prometheus_javaagent.jar:/opt/jmx_exporter/jmx_prometheus_javaagent.jar:ro
+      - ./prometheus/jmx/kafka.yml:/opt/jmx_exporter/kafka.yml:ro
     networks:
       - kafka-network
     restart: unless-stopped
@@ -184,6 +194,8 @@ services:
     volumes:
       - kafka2-b-1-data:/var/lib/kafka/data
       - ./mount_dir/kafka2-b-1/creds:/etc/kafka/secrets
+      - ./prometheus/jmx/jmx_prometheus_javaagent.jar:/opt/jmx_exporter/jmx_prometheus_javaagent.jar:ro
+      - ./prometheus/jmx/kafka.yml:/opt/jmx_exporter/kafka.yml:ro
     networks:
       - kafka-network
     restart: unless-stopped

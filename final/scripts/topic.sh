@@ -19,7 +19,7 @@ create_topic() {
   # retention.ms=604800000 - Время хранения данных в топике в миллисекундах (7 дней)
   # segment.bytes=536870912 - Максимальный размер файла сегмента лога в байтах (512 МБ)
   # min.insync.replicas=3 - минимальное число реплик (в синхронном состоянии), которые должны подтвердить получение сообщения для выполнения успешной записи
-  docker exec -it ${BROKER} kafka-topics \
+  docker exec -e KAFKA_OPTS="" -it ${BROKER} kafka-topics \
   --command-config ${COMMAND_CONFIG} \
   --bootstrap-server ${SERVER} \
   --create \
@@ -33,7 +33,7 @@ create_topic() {
 
   echo "\n"
   echo "${YELLOW}Describe topic: ${TOPIC_NAME}${NC}"
-  docker exec -it kafka-b-1 kafka-topics \
+  docker exec -e KAFKA_OPTS="" -it kafka-b-1 kafka-topics \
   --command-config ${COMMAND_CONFIG} \
   --bootstrap-server ${BOOTSTRAP_SERVER} \
   --describe \

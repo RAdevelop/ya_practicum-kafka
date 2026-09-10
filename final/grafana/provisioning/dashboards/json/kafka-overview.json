@@ -1,0 +1,90 @@
+{
+  "annotations": { "list": [] },
+  "title": "Kafka Overview",
+  "panels": [
+    {
+      "title": "Active Controller Count",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "kafka_controller_active_controller_count", "refId": "A" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "NO LEADER", "color": "red" }, "1": { "text": "ACTIVE", "color": "green" } }, "type": "value" }
+          ]
+        }
+      }
+    },
+    {
+      "title": "Under-Replicated Partitions",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        { "expr": "kafka_server_replica_manager_under_replicated_partitions", "refId": "A" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "value": null, "color": "green" },
+              { "value": 1, "color": "red" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Messages In / sec",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "expr": "rate(kafka_server_broker_topic_metrics_messages_in_per_sec_count_total[1m])",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Bytes In / sec",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        {
+          "expr": "rate(kafka_server_broker_topic_metrics_bytes_in_per_sec_count_total[1m])",
+          "legendFormat": "{{instance}} - {{topic}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Bytes Out / sec",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "rate(kafka_server_broker_topic_metrics_bytes_out_per_sec_count_total[1m])",
+          "legendFormat": "{{instance}} - {{topic}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Heap Memory Used",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "expr": "jvm_memory_used_bytes{area=\"heap\"}",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 27,
+  "time": { "from": "now-15m", "to": "now" },
+  "refresh": "10s"
+}

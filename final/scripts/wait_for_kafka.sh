@@ -11,7 +11,7 @@ wait_for_kafka() {
 
   for i in $(seq 1 60); do
     # Захватываем и stdout, и stderr
-    output=$(docker exec ${broker} kafka-topics \
+    output=$(docker exec -e KAFKA_OPTS="" ${broker} kafka-topics \
       --describe \
       --bootstrap-server ${SERVER} \
       --command-config ${COMMAND_CONFIG} \

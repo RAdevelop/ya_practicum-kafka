@@ -1,0 +1,22 @@
+groups:
+  - name: kafka-alerts
+    rules:
+      - alert: KafkaNodeDown
+        expr: up{job=~"kafka-cluster-.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: kafka
+        annotations:
+          summary: "Kafka node {{ $labels.instance }} is down in cluster {{ $labels.cluster }}"
+          description: "Prometheus cannot scrape {{ $labels.instance }}. The node may have crashed or network is down."
+
+      - alert: KafkaUnderReplicatedPartitions
+        expr: kafka_server_replica_manager_under_replicated_partitions > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: kafka
+        annotations:
+          summary: "Cluster {{ $labels.cluster }} has under-replicated partitions"
+          description: "Instance {{ $labels.instance }} has {{ $value }} under-replicated partition(s)."

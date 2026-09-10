@@ -25,6 +25,7 @@ make rebuild
 > Я не знаю какие настройки нужно подкрутить для ускорения. Есть скрипты проверки доступности сервисов. Они показывают процесс.
 > В частности, это касается готовности Schema Registry, Kafka Connect, Kafka Connect HDFS.
 > ServiceLoaderScanner отработал за 13 секунд вместо 16 минут — это победа. Но ReflectionScanner всё ещё медленный: hdfs3 сканировался 6.5 минут, filestream — 4.5 минуты. Общее время — около 12 минут, но в лимит 600 секунд уложилось.
+> ![Waiting for Kafka cluster](./screens/0.png)
 > 
 > Поэтому задание сделал на двух кластерах, в которых по одному контроллеру и одному брокеру.
 > Иначе Докер ест почти ве ресурсы компа.
@@ -254,4 +255,55 @@ drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/products-p
 
 ### Мониторинг
 
-TODO скрин с графаной с результатами мониторинга
+#### Prometheus
+
+- [Prometheus | Status → Targets](http://localhost:9090/targets)
+  - папка `./prometheus/...` - настройки для Prometheus
+  - ![Prometheus | Status → Targets](./screens/8.png)
+
+#### Grafana
+
+- [Grafana](http://localhost:3000/) - admin:admin - конечно, стоит менять.
+  - папка `./grafana/...` - настройки для Grafana
+  - [Dashboards - Kafka - Kafka Overview](http://localhost:3000/d/51387efa-c36f-46c9-895c-302143801aab/kafka-overview)
+  - Active Controller Count
+    - ACTIVE (1)	Контроллер жив и управляет кластером
+    - NO LEADER (0)	Контроллер упал — кластер не может управлять топиками
+    - оба кластера ACTIVE — контроллеры kafka-c-1 и kafka2-c-1 работают.
+  - Under-Replicated Partitions
+    - Количество партиций, у которых реплики отстают от лидера. 0 = всё здорово. Если значение больше нуля — кто-то из брокеров отстаёт или недоступен. Сейчас 0 на обоих кластерах.
+  - Messages In / sec
+    - Скорость поступления сообщений в брокер (штук в секунду). Показывает общий поток сообщений по каждому узлу. Сейчас все 4 узла — значит сообщения поступают (или метрика фиксирует служебный трафик вроде heartbeats и metadata).
+  - Bytes In / sec
+    - Сколько байт в секунду записывается в каждый топик. В легенде видны конкретные топики:
+      - products — входящие товары
+      - products-published — опубликованные товары
+      - products-blocked — заблокированные товары
+      - recommendations — рекомендации (результат работы Spark)
+      - heartbeats, mm2-*, connect-* — служебные топики MirrorMaker и Kafka Connect
+      - __consumer_offsets — внутренний топик Kafka для хранения offset'ов консьюмеров
+  - Bytes Out / sec
+    - Сколько байт в секунду читается из топиков. По сути — активность консьюмеров. Видно, что из products и products-published кто-то читает (Kafka Connect, Goka, Spark). client-search с 0 — из него никто не читает прямо сейчас.
+  - Heap Memory Used
+    - Сколько heap-памяти JVM занимает каждый узел Kafka. Полезно для контроля утечек памяти и планирования ресурсов. kafka-b-1 занимает ~500 MB из 1 GB — нормально. Контроллеры (~260 MB) — ещё меньше, логично, они не хранят данные.
+  - ![Dashboards - Kafka - Kafka Overview](./screens/9.png)
+  
+#### AlertManager Prometheus
+
+- [Prometheus Alerts](http://localhost:9090/alerts)
+
+Используем две метрики:
+
+- `up{job=~"kafka-cluster-.*"} == 0` — если == 0, значит, кластер без контроллера.
+- `kafka_server_replica_manager_under_replicated_partitions` — если растёт, значит, у партиций нет лидера или реплики не синхронизированы.
+
+**Как проверить, что алерт работает**
+
+Проверка — эмуляция падения контроллера:
+
+- Остановить контроллер: `docker stop kafka-c-1`.
+- Ждем 2-3 минуты.
+- В Prometheus UI → Alerts должен появиться KafkaNodeDown.
+  - ![Alertmanager KafkaNodeDown](./screens/11.png)
+- Вернуть контроллер: `docker start kafka-c-1`
+  - ![Alertmanager ok](./screens/10.png) 

@@ -101,6 +101,7 @@ acl: ## Выдать права
 .PHONY: down
 down: ## Остановить кластер
 	@echo "$(YELLOW)=== Stopping cluster ===$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose-monitor.yml down
 	@$(DOCKER_COMPOSE) -f docker-compose-go.yml down
 	@$(DOCKER_COMPOSE) -f docker-compose.spark.yml down
 	@$(DOCKER_COMPOSE) -f docker-compose.apps1.yml down
@@ -110,6 +111,7 @@ down: ## Остановить кластер
 .PHONY: clean
 clean: ## Остановить кластер и удалить данные (volumes)
 	@echo "$(YELLOW)=== Cleaning cluster data ===$(NC)"
+	@$(DOCKER_COMPOSE) -f docker-compose-monitor.yml down -v
 	@$(DOCKER_COMPOSE) -f docker-compose-go.yml down -v
 	@$(DOCKER_COMPOSE) -f docker-compose.spark.yml down -v
 	@$(DOCKER_COMPOSE) -f docker-compose.apps1.yml down -v
@@ -139,7 +141,6 @@ up-app: ## Запустить go-app
 	@echo "$(GREEN)=== Starting go-app ===$(NC)"
 	@$(DOCKER_COMPOSE) -f docker-compose-go.yml up -d --no-deps --build app
 	@echo "$(GREEN)✅ go-app started$(NC)"
-	@make status
 
 ## Пересобрать все с очисткой
 .PHONY: rebuild
@@ -162,8 +163,14 @@ rebuild:  ## Пересобрать кластер, создать топики,
 	@echo "$(GREEN)========= Starting spark  =========$(NC)"
 	@$(DOCKER_COMPOSE) -f docker-compose.spark.yml  up -d --build
 	@make status
-	@echo "$(GREEN)✅ Cluster started$(NC)"
+	@echo "$(GREEN)========= Starting monitoring  =========$(NC)"
+	@make wait-kafka
+	@$(DOCKER_COMPOSE) -f docker-compose-monitor.yml up -d --build
+	@make status
+	@echo "$(GREEN)========= Starting go-app  =========$(NC)"
 	@make wait-kafka
 	@make up-app
+	@make status
+	@echo "$(GREEN)✅ Cluster started$(NC)"
 
 .DEFAULT_GOAL := help

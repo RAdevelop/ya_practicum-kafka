@@ -7,7 +7,7 @@ NC='\033[0m' # No Color
 ############################################################ User shop-api
 
 echo "${YELLOW}Дадим ${USER_SHOP_API} права на Describe group${NC}"
-docker exec -it kafka-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka-b-1 kafka-acls \
 --command-config ${COMMAND_CONFIG} \
 --bootstrap-server ${BOOTSTRAP_SERVER} \
 --add \
@@ -20,7 +20,7 @@ echo "\n"
 echo "${YELLOW}Топик '${TOPIC_PRODUCTS}': Доступен для ${USER_SHOP_API}.${NC}"
 echo "${YELLOW}Дадим ${USER_SHOP_API} права на запись и чтение в топик:${NC}"
 
-docker exec -it kafka-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka-b-1 kafka-acls \
 --command-config ${COMMAND_CONFIG} \
 --bootstrap-server ${BOOTSTRAP_SERVER} \
 --add \
@@ -34,7 +34,7 @@ echo "\n"
 echo "${YELLOW}Топик '${TOPIC_PRODUCTS_BLOCKED}': Доступен для ${USER_SHOP_API}.${NC}"
 echo "${YELLOW}Дадим ${USER_SHOP_API} права на запись и чтение в топик:${NC}"
 
-docker exec -it kafka-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka-b-1 kafka-acls \
 --command-config ${COMMAND_CONFIG} \
 --bootstrap-server ${BOOTSTRAP_SERVER} \
 --add \
@@ -48,7 +48,7 @@ echo "\n"
 echo "${YELLOW}Топик '${TOPIC_PRODUCTS_PUBLISHED}': Доступен для ${USER_SHOP_API}.${NC}"
 echo "${YELLOW}Дадим ${USER_SHOP_API} права на запись и чтение в топик:${NC}"
 
-docker exec -it kafka-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka-b-1 kafka-acls \
 --command-config ${COMMAND_CONFIG} \
 --bootstrap-server ${BOOTSTRAP_SERVER} \
 --add \
@@ -61,7 +61,7 @@ docker exec -it kafka-b-1 kafka-acls \
 echo "\n"
 echo "${YELLOW}Дадим ${USER_SHOP_API} права на работы с топиками групп group-*:${NC}"
 
-docker exec -it kafka-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka-b-1 kafka-acls \
 --command-config ${COMMAND_CONFIG} \
 --bootstrap-server ${BOOTSTRAP_SERVER} \
 --add \
@@ -78,7 +78,7 @@ docker exec -it kafka-b-1 kafka-acls \
 ################################################################## client-api
 
 echo "${YELLOW}Дадим ${USER_CLIENT_API} права на consumer groups${NC}"
-docker exec -it kafka-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka-b-1 kafka-acls \
   --command-config ${COMMAND_CONFIG} \
   --bootstrap-server ${BOOTSTRAP_SERVER} \
   --add \
@@ -88,7 +88,7 @@ docker exec -it kafka-b-1 kafka-acls \
   --group "*"
 
 echo "${YELLOW}Дадим ${USER_CLIENT_API} права на чтение топика ${TOPIC_CLIENT_SEARCH}${NC}"
-docker exec -it kafka-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka-b-1 kafka-acls \
   --command-config ${COMMAND_CONFIG} \
   --bootstrap-server ${BOOTSTRAP_SERVER} \
   --add \
@@ -99,7 +99,7 @@ docker exec -it kafka-b-1 kafka-acls \
   --topic ${TOPIC_CLIENT_SEARCH}
 
 echo "${YELLOW}Дадим ${USER_CLIENT_API} права на чтение топика recommendations${NC}"
-docker exec -it kafka-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka-b-1 kafka-acls \
   --command-config ${COMMAND_CONFIG} \
   --bootstrap-server ${BOOTSTRAP_SERVER} \
   --add \
@@ -110,7 +110,7 @@ docker exec -it kafka-b-1 kafka-acls \
   --topic ${TOPIC_RECOMMENDATIONS}
 
 echo "${YELLOW}Дадим ${USER_CLIENT_API} права на чтение table-топиков group-*${NC}"
-docker exec -it kafka-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka-b-1 kafka-acls \
   --command-config ${COMMAND_CONFIG} \
   --bootstrap-server ${BOOTSTRAP_SERVER} \
   --add \
@@ -125,7 +125,7 @@ docker exec -it kafka-b-1 kafka-acls \
 ################################################################## kafka-connect
 echo "\n"
 echo "${YELLOW}Дадим ${USER_KAFKA_CONNECT} права на первом кластере на чтение ${TOPIC_PRODUCTS_PUBLISHED}:${NC}"
-docker exec -it kafka-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka-b-1 kafka-acls \
 --command-config ${COMMAND_CONFIG} \
 --bootstrap-server ${BOOTSTRAP_SERVER} \
 --add --allow-principal "User:CN=${USER_KAFKA_CONNECT},L=Moscow,OU=Practice,O=Yandex,C=RU" \
@@ -135,7 +135,7 @@ docker exec -it kafka-b-1 kafka-acls \
 
 
 # Права на внутренние топики Connect
-docker exec -it kafka-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka-b-1 kafka-acls \
 --command-config ${COMMAND_CONFIG} \
 --bootstrap-server ${BOOTSTRAP_SERVER} \
 --add --allow-principal "User:CN=${USER_KAFKA_CONNECT},L=Moscow,OU=Practice,O=Yandex,C=RU" \
@@ -146,7 +146,7 @@ docker exec -it kafka-b-1 kafka-acls \
 --topic "connect-" \
 --resource-pattern-type PREFIXED
 
-docker exec -it kafka-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka-b-1 kafka-acls \
 --command-config ${COMMAND_CONFIG} \
 --bootstrap-server ${BOOTSTRAP_SERVER} \
 --add --allow-principal "User:CN=${USER_KAFKA_CONNECT},L=Moscow,OU=Practice,O=Yandex,C=RU" \
@@ -155,7 +155,7 @@ docker exec -it kafka-b-1 kafka-acls \
 --group "connect-" \
 --resource-pattern-type PREFIXED
 
-docker exec -it kafka-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka-b-1 kafka-acls \
 --command-config ${COMMAND_CONFIG} \
 --bootstrap-server ${BOOTSTRAP_SERVER} \
 --add --allow-principal "User:CN=${USER_KAFKA_CONNECT},L=Moscow,OU=Practice,O=Yandex,C=RU" \
@@ -164,7 +164,7 @@ docker exec -it kafka-b-1 kafka-acls \
 --group connect-file-sink-products
 
 # Права на чтение products-published
-docker exec -it kafka2-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka2-b-1 kafka-acls \
   --command-config ${COMMAND_CONFIG} \
   --bootstrap-server ${BOOTSTRAP_SERVER2} \
   --add --allow-principal "User:CN=${USER_KAFKA_CONNECT},L=Moscow,OU=Practice,O=Yandex,C=RU" \
@@ -173,7 +173,7 @@ docker exec -it kafka2-b-1 kafka-acls \
   --topic ${TOPIC_PRODUCTS_PUBLISHED}
 
 # Права на внутренние топики нового воркера (префикс hdfs-connect-)
-docker exec -it kafka2-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka2-b-1 kafka-acls \
   --command-config ${COMMAND_CONFIG} \
   --bootstrap-server ${BOOTSTRAP_SERVER2} \
   --add --allow-principal "User:CN=${USER_KAFKA_CONNECT},L=Moscow,OU=Practice,O=Yandex,C=RU" \
@@ -185,7 +185,7 @@ docker exec -it kafka2-b-1 kafka-acls \
   --resource-pattern-type PREFIXED
 
 # Права на consumer group
-docker exec -it kafka2-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka2-b-1 kafka-acls \
   --command-config ${COMMAND_CONFIG} \
   --bootstrap-server ${BOOTSTRAP_SERVER2} \
   --add --allow-principal "User:CN=${USER_KAFKA_CONNECT},L=Moscow,OU=Practice,O=Yandex,C=RU" \
@@ -195,7 +195,7 @@ docker exec -it kafka2-b-1 kafka-acls \
   --resource-pattern-type PREFIXED
 
 # Права на consumer group
-docker exec -it kafka2-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka2-b-1 kafka-acls \
   --command-config ${COMMAND_CONFIG} \
   --bootstrap-server ${BOOTSTRAP_SERVER2} \
   --add --allow-principal "User:CN=${USER_KAFKA_CONNECT},L=Moscow,OU=Practice,O=Yandex,C=RU" \
@@ -204,7 +204,7 @@ docker exec -it kafka2-b-1 kafka-acls \
   --group "connect-hdfs3-" \
   --resource-pattern-type PREFIXED
 
-docker exec -it kafka2-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka2-b-1 kafka-acls \
   --command-config ${COMMAND_CONFIG} \
   --bootstrap-server ${BOOTSTRAP_SERVER2} \
   --add --allow-principal "User:CN=${USER_KAFKA_CONNECT},L=Moscow,OU=Practice,O=Yandex,C=RU" \
@@ -212,7 +212,7 @@ docker exec -it kafka2-b-1 kafka-acls \
   --operation DESCRIBE \
   --group "connect-hdfs3-sink-products"
 
-docker exec -it kafka2-b-1 kafka-acls \
+docker exec -e KAFKA_OPTS="" -it kafka2-b-1 kafka-acls \
   --command-config ${COMMAND_CONFIG} \
   --bootstrap-server ${BOOTSTRAP_SERVER2} \
   --add --allow-principal "User:CN=${USER_KAFKA_CONNECT},L=Moscow,OU=Practice,O=Yandex,C=RU" \
