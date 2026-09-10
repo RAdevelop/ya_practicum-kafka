@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/emitter"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/store"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/logger"
+	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/models"
 	"github.com/lovoo/goka"
 )
 
@@ -17,7 +19,8 @@ type Emitters struct {
 	BlockedProductsEmitter *emitter.ProductsBlocked
 }
 type Views struct {
-	BlockedProductsView *goka.View
+	BlockedProductsView         *goka.View
+	RecommendationsProductsView *goka.View
 }
 type Handlers struct {
 	logger   *logger.Logger
@@ -54,7 +57,7 @@ func (h *Handlers) GetShopProductsBlocked(w http.ResponseWriter, r *http.Request
 
 	val, err := h.views.BlockedProductsView.Get(h.config.KeyTopic.ProductsBlocked)
 	if err != nil {
-		h.logger.Error("Failed to get bad words: %v", err)
+		h.logger.Error("Failed to get blocked products: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -100,4 +103,38 @@ func (h *Handlers) PostShopProductsBlockedAction(w http.ResponseWriter, r *http.
 	}
 	h.logger.Success("EmitSync event: %s", event)
 	h.writeJSON(w, http.StatusCreated, map[string]string{"status": "ok", "event": event})
+}
+
+// GetClientSearch - GET /client/search?name=имя_товара — поиск товаров
+func (h *Handlers) GetClientSearch(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	productName := r.URL.Query().Get("name")
+
+	//TODO del
+	log.Printf("------------------------ productName %s", productName)
+
+	category := "Фото и видео"
+
+	//TODO by product.Category
+
+	val, err := h.views.RecommendationsProductsView.Get(category)
+	if err != nil {
+		h.logger.Error("Failed to get Recommendations: %v", err)
+	}
+
+	searchResult := models.SearchResult{}
+
+	var recommendations *store.Recommendations
+	recommendations, ok := val.(*store.Recommendations)
+	if ok {
+		searchResult.Recommendations = recommendations
+	} else {
+		h.logger.Error("wrong type for Recommendations: %T", val)
+	}
+
+	h.writeJSON(w, http.StatusOK, searchResult)
 }

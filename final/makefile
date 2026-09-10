@@ -19,9 +19,10 @@ export USER_MIRROR_MAKER := mirror-maker
 export USER_KAFKA_CONNECT := kafka-connect
 
 export TOPIC_PRODUCTS := products
-export TOPIC_PRODUCTS_BLOCKED := products_blocked
-export TOPIC_PRODUCTS_PUBLISHED := products_published
+export TOPIC_PRODUCTS_BLOCKED := products-blocked
+export TOPIC_PRODUCTS_PUBLISHED := products-published
 export TOPIC_RECOMMENDATIONS := recommendations
+export TOPIC_CLIENT_SEARCH := client-search
 
 
 export COMMAND_CONFIG := /etc/kafka/secrets/admin/admin-client.properties

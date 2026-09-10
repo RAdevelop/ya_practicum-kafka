@@ -1,6 +1,9 @@
 package config
 
 import (
+	"crypto/tls"
+
+	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/cert"
 	"github.com/lovoo/goka"
 	"github.com/struct0x/envconfig"
 )
@@ -13,6 +16,7 @@ type Config struct {
 	KeyTopic         *keyTopic       `envPrefix:"KEY_TOPIC"`
 	SchemaRegistry   *schemaRegistry `envPrefix:"SCHEMA_REGISTRY"`
 	Shop             *shop           `envPrefix:"SHOP"`
+	Client           *client         `envPrefix:"CLIENT"`
 	ViewTable        *viewTable
 	Processor        *processor `envPrefix:"PROCESSOR"`
 }
@@ -23,6 +27,7 @@ func (c *Config) Load(envFilePath string) {
 	}
 
 	c.ViewTable.ProductsBlocked = goka.Table(c.Processor.GroupProductsBlocked + "-table")
+	c.ViewTable.ProductsRecommendations = goka.Table(c.Topics.ProductsRecommendations)
 }
 
 type producer struct {
@@ -60,9 +65,11 @@ type consumer struct {
 }
 
 type topics struct {
-	Products          string `env:"PRODUCTS" envDefault:""`
-	ProductsBlocked   string `env:"PRODUCTS_BLOCKED" envDefault:""`
-	ProductsPublished string `env:"PRODUCTS_PUBLISHED" envDefault:""`
+	Products                string `env:"PRODUCTS" envDefault:""`
+	ProductsBlocked         string `env:"PRODUCTS_BLOCKED" envDefault:""`
+	ProductsPublished       string `env:"PRODUCTS_PUBLISHED" envDefault:""`
+	ProductsRecommendations string `env:"PRODUCTS_RECOMMENDATIONS" envDefault:""`
+	ClientSearch            string `env:"CLIENT_SEARCH" envDefault:""`
 }
 
 type keyTopic struct {
@@ -83,11 +90,35 @@ type shop struct {
 	SslCertificatePK8 string `env:"SSL_CERTIFICATE_PK8"`
 }
 
+type client struct {
+	SslCaLocation     string `env:"SSL_CA_LOCATION"`
+	SslCertLocation   string `env:"SSL_CERTIFICATE_LOCATION"`
+	SslCertificatePK8 string `env:"SSL_CERTIFICATE_PK8"`
+}
+
 type viewTable struct {
-	ProductsBlocked goka.Table `env:"PRODUCTS_BLOCKED"`
+	ProductsBlocked         goka.Table `env:"PRODUCTS_BLOCKED"`
+	ProductsRecommendations goka.Table `env:"PRODUCTS_RECOMMENDATIONS"`
 }
 
 type processor struct {
-	GroupProductsBlocked goka.Group `env:"GROUP_PRODUCTS_BLOCKED" envDefault:"group-products-blocked"`
-	GroupProductsCensor  goka.Group `env:"GROUP_PRODUCTS_CENSOR" envDefault:"group-products-censor"`
+	GroupProductsBlocked         goka.Group `env:"GROUP_PRODUCTS_BLOCKED" envDefault:"group-products-blocked"`
+	GroupProductsCensor          goka.Group `env:"GROUP_PRODUCTS_CENSOR" envDefault:"group-products-censor"`
+	GroupProductsRecommendations goka.Group `env:"GROUP_PRODUCTS_RECOMMENDATIONS" envDefault:"group-products-recommendations"`
+}
+
+func (c *Config) LoadShopConfigTLS() (*tls.Config, error) {
+	return cert.LoadTLSConfig(
+		c.Shop.SslCaLocation,
+		c.Shop.SslCertLocation,
+		c.Shop.SslCertificatePK8,
+	)
+}
+
+func (c *Config) LoadClientConfigTLS() (*tls.Config, error) {
+	return cert.LoadTLSConfig(
+		c.Client.SslCaLocation,
+		c.Client.SslCertLocation,
+		c.Client.SslCertificatePK8,
+	)
 }

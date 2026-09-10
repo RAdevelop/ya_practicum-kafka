@@ -24,13 +24,8 @@ func NewServer(handlers *Handlers) *Server {
 	mux.HandleFunc("GET /shop/products/blocked", handlers.GetShopProductsBlocked)
 	// "add|remove" товар с именем {productName}
 	mux.HandleFunc("GET /shop/products/blocked/{action}/{productName}", handlers.PostShopProductsBlockedAction)
-	// PostBadWord - имя оставим такое, хоть и GET запрос (чтобы не реализовывать html форму)
-	//mux.HandleFunc("GET /bad-word", handlers.PostBadWord)
-	// состояние блокировки пользователей для указанного
-	//mux.HandleFunc("GET /user-block/{user_id}", handlers.GetUserBlock)
-
-	// PostMessage
-	//mux.HandleFunc("GET /message/{from_uid}/{to_uid}/", handlers.PostMessage)
+	//поиск товара по имени /client/search?name=имя_товара
+	mux.HandleFunc("GET /client/search", handlers.GetClientSearch)
 
 	return &Server{
 		httpServer: &http.Server{
@@ -45,9 +40,6 @@ func NewServer(handlers *Handlers) *Server {
 }
 
 func (s *Server) Run(ctx context.Context) error {
-	s.logger.Info("Starting HTTP server on %s", "http://localhost:8181")
-	s.logger.Info("GET /shop/products/blocked: %s", "http://localhost:8181/shop/products/blocked")
-	s.logger.Info("GET /shop/products/blocked/{action}/{productName}: %s", "http://localhost:8181/shop/products/blocked/{action}/{productName}")
 
 	go func() {
 		if err := s.httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {

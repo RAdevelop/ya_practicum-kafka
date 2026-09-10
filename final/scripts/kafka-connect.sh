@@ -75,7 +75,7 @@ curl -s -X PUT https://localhost:8083/connectors/file-sink-products/config \
     "connector.class": "org.apache.kafka.connect.file.FileStreamSinkConnector",
     "tasks.max": "1",
     "topics": "'"${TOPIC_PRODUCTS_PUBLISHED}"'",
-    "file": "/var/lib/kafka-connect-data/products_published.jsonl"
+    "file": "/var/lib/kafka-connect-data/'${TOPIC_PRODUCTS_PUBLISHED}'.jsonl"
   }' | jq
 
 # Статус коннектора
@@ -130,7 +130,7 @@ curl -s -X POST https://localhost:8084/connectors \
       "log.dir": "/tmp/logs",
       "locale": "en",
       "timezone": "UTC",
-      "confluent.topic.bootstrap.servers": "kafka2-b-1:9093,kafka2-b-2:9093,kafka2-b-3:9093",
+      "confluent.topic.bootstrap.servers": "'"${BOOTSTRAP_SERVER2}"'",
       "confluent.topic.replication.factor": "1",
       "confluent.topic.security.protocol": "SSL",
       "confluent.topic.ssl.truststore.location": "/etc/kafka/secrets/truststore.jks",

@@ -8,7 +8,6 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/api"
-	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/cert"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/config"
 	jsCodec "github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/codec"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/store"
@@ -41,11 +40,7 @@ func NewProductsCensor(config config.Config, views *api.Views, codecProducts *js
 func (c *ProductsCensor) Run(ctx context.Context) {
 
 	// TLS-конфиг
-	tlsConfig, err := cert.LoadTLSConfig(
-		c.config.Shop.SslCaLocation,
-		c.config.Shop.SslCertLocation,
-		c.config.Shop.SslCertificatePK8,
-	)
+	tlsConfig, err := c.config.LoadShopConfigTLS()
 	if err != nil {
 		c.logger.Error("Failed to load TLS config: %v", err)
 		// Если ошибка — закрываем канал, чтобы main не висел вечно.
@@ -113,16 +108,33 @@ func (c *ProductsCensor) Run(ctx context.Context) {
 	}
 	defer p.Stop()
 
-	// Сигнализируем о готовности ПОСЛЕ создания процессора
-	if c.ready != nil {
-		close(c.ready)
-		c.logger.Info("ProductsCensor processor is ready")
+	// Запускаем процессор в горутине
+	go func() {
+		if err := p.Run(ctx); err != nil {
+			c.logger.Error("Processor error: %v", err)
+		}
+	}()
+
+	// Ждём, пока процессор подключится и получит партиции
+	c.logger.Info("Waiting for processor to become ready...")
+	if err := p.WaitForReady(); err != nil {
+		c.logger.Error("Processor failed to become ready: %v", err)
+		if c.ready != nil {
+			close(c.ready)
+		}
+		return
 	}
 
-	c.logger.Info("Starting processor...")
-	if err = p.Run(ctx); err != nil {
-		c.logger.Info("Processor error: %v", err)
+	c.logger.Info("ProductsCensor processor is ready (connected, partitions assigned)")
+
+	// Сигнализируем о готовности
+	if c.ready != nil {
+		close(c.ready)
 	}
+
+	// Ждём отмены контекста
+	<-ctx.Done()
+	c.logger.Info("Processor context cancelled, stopping...")
 }
 
 // processCensForProducts - фильтруем товары, не пускам заблокированные

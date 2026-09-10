@@ -351,16 +351,12 @@ mkdir -p "${SPARK_DIR}/apps"
 cat > "${SPARK_DIR}/apps/analytics.py" << EOF
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, to_json, struct, collect_list, regexp_replace
-from pyspark.sql import SparkSession
 
-spark = SparkSession.builder \
-    .appName("product-recommendations") \
-    .getOrCreate()
-
+spark = SparkSession.builder.appName("product-recommendations").getOrCreate()
 spark.sparkContext.setLogLevel("WARN")
 
 hadoop_conf = spark._jsc.hadoopConfiguration()
-hdfs_path = "hdfs://hdfs-namenode:9000/topics/products_published"
+hdfs_path = "hdfs://hdfs-namenode:9000/topics/${TOPIC_PRODUCTS_PUBLISHED}"
 hdfs = spark._jvm.org.apache.hadoop.fs.FileSystem.get(hadoop_conf)
 path = spark._jvm.org.apache.hadoop.fs.Path(hdfs_path)
 
@@ -370,41 +366,15 @@ if not hdfs.exists(path):
     exit(0)
 
 raw = spark.read.text(hdfs_path + "/*/*")
-
-clean = raw.withColumn(
-    "no_quotes", regexp_replace(col("value"), r'^"|"$', '')
-).withColumn(
-    "json_str", regexp_replace(col("no_quotes"), r'\\"', '"')
-)
-
+clean = raw.withColumn("no_quotes", regexp_replace(col("value"), r'^"|"$', '')).withColumn("json_str", regexp_replace(col("no_quotes"), r'\\\\"', '"'))
 products = spark.read.json(clean.select("json_str").rdd.map(lambda r: r[0]))
-
 products = products.select("product_id", "name", "category", "brand")
-
 products_valid = products.filter(col("product_id").isNotNull() & col("category").isNotNull())
-
 products_dedup = products_valid.dropDuplicates(["product_id"])
+result = products_dedup.groupBy("category").agg(to_json(struct(col("category"), collect_list(struct("product_id", "name", "brand")).alias("recommended_products"))).alias("value")).select(col("category").cast("string").alias("key"), col("value"))
 
-result = products_dedup.groupBy("category").agg(
-    to_json(struct(
-        col("category"),
-        collect_list(struct("product_id", "name", "brand")).alias("recommended_products")
-    )).alias("value")
-).select(col("category").cast("string").alias("key"), col("value"))
-
-if result.count() > 0:
-result.write.format("kafka") \
-    .option("kafka.bootstrap.servers", "${BOOTSTRAP_SERVER2}") \
-    .option("topic", "${TOPIC_RECOMMENDATIONS}") \
-    .option("kafka.security.protocol", "SSL") \
-    .option("kafka.ssl.truststore.location", "/etc/kafka/secrets/truststore.jks") \
-    .option("kafka.ssl.truststore.password", "${CA_PASS}") \
-    .option("kafka.ssl.keystore.location", "/etc/kafka/secrets/keystore.pkcs12") \
-    .option("kafka.ssl.keystore.password", "${CA_PASS}") \
-    .option("kafka.ssl.key.password", "${CA_PASS}") \
-    .save()
-else:
-    print("No valid products found, skipping write to Kafka")
+if result.count() > 0: result.write.format("kafka").option("kafka.bootstrap.servers", "${BOOTSTRAP_SERVER2}").option("topic", "${TOPIC_RECOMMENDATIONS}").option("kafka.security.protocol", "SSL").option("kafka.ssl.truststore.location", "/etc/kafka/secrets/truststore.jks").option("kafka.ssl.truststore.password", "${CA_PASS}").option("kafka.ssl.keystore.location", "/etc/kafka/secrets/keystore.pkcs12").option("kafka.ssl.keystore.password", "${CA_PASS}").option("kafka.ssl.key.password", "${CA_PASS}").save()
+else: print("No valid products found, skipping write to Kafka")
 
 spark.stop()
 

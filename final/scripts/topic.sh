@@ -8,6 +8,8 @@ create_topic() {
   local SERVER=$2
   local TOPIC_NAME=$3
   local PARTITIONS=${4:-3}  # ← если не передано — используем 3
+  local CLEANUP_POLICY=${5:-delete}  # ← если не передано — cleanup.policy=delete
+
   echo "${YELLOW}Create topic: ${TOPIC_NAME}${NC}"
   echo "${YELLOW}On BROKER: ${BROKER} and SERVER: ${SERVER}${NC}"
   #cleanup.policy=compact
@@ -24,7 +26,7 @@ create_topic() {
   --topic ${TOPIC_NAME} \
   --partitions ${PARTITIONS} \
   --replication-factor 1 \
-  --config cleanup.policy=delete \
+  --config cleanup.policy=${CLEANUP_POLICY} \
   --config retention.ms=604800000 \
   --config segment.bytes=536870912 \
   --config min.insync.replicas=1
@@ -38,15 +40,17 @@ create_topic() {
   --topic ${TOPIC_NAME}
 }
 
-for t in ${TOPIC_PRODUCTS} ${TOPIC_PRODUCTS_PUBLISHED} ${TOPIC_RECOMMENDATIONS}; do
-  create_topic "kafka-b-1" ${BOOTSTRAP_SERVER} ${t} 1
+for t in ${TOPIC_PRODUCTS} ${TOPIC_PRODUCTS_PUBLISHED} ${TOPIC_CLIENT_SEARCH}; do
+  create_topic "kafka-b-1" ${BOOTSTRAP_SERVER} ${t} 1 "delete"
 done
 
-create_topic "kafka-b-1" ${BOOTSTRAP_SERVER} ${TOPIC_PRODUCTS_BLOCKED} 1
+create_topic "kafka-b-1" ${BOOTSTRAP_SERVER} ${TOPIC_PRODUCTS_BLOCKED} 1 "delete"
+create_topic "kafka-b-1" ${BOOTSTRAP_SERVER} ${TOPIC_RECOMMENDATIONS} 1 "compact"
 
 
-for t in ${TOPIC_PRODUCTS} ${TOPIC_PRODUCTS_PUBLISHED} ${TOPIC_RECOMMENDATIONS}; do
-  create_topic "kafka2-b-1" ${BOOTSTRAP_SERVER2} ${t} 1
+for t in ${TOPIC_PRODUCTS} ${TOPIC_PRODUCTS_PUBLISHED} ${TOPIC_CLIENT_SEARCH}; do
+  create_topic "kafka2-b-1" ${BOOTSTRAP_SERVER2} ${t} 1 "delete"
 done
 
-create_topic "kafka2-b-1" ${BOOTSTRAP_SERVER2} ${TOPIC_PRODUCTS_BLOCKED} 1
+create_topic "kafka2-b-1" ${BOOTSTRAP_SERVER2} ${TOPIC_PRODUCTS_BLOCKED} 1 "delete"
+create_topic "kafka2-b-1" ${BOOTSTRAP_SERVER2} ${TOPIC_RECOMMENDATIONS} 1 "compact"

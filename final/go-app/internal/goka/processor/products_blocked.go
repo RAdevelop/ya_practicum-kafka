@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/cert"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/config"
 	jsCodec "github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/codec"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/goka/store"
@@ -34,11 +33,7 @@ func NewProductsBlocked(config config.Config, ready chan struct{}) *ProductsBloc
 func (pb *ProductsBlocked) Run(ctx context.Context) {
 
 	// TLS-конфиг
-	tlsConfig, err := cert.LoadTLSConfig(
-		pb.config.Shop.SslCaLocation,
-		pb.config.Shop.SslCertLocation,
-		pb.config.Shop.SslCertificatePK8,
-	)
+	tlsConfig, err := pb.config.LoadShopConfigTLS()
 	if err != nil {
 		pb.logger.Error("Failed to load TLS config: %v", err)
 		// закрываем канал при ошибке, чтобы main не висел
@@ -56,7 +51,7 @@ func (pb *ProductsBlocked) Run(ctx context.Context) {
 	saramaConfig.Producer.Return.Errors = true
 
 	saramaConfig.Consumer.Return.Errors = true
-	saramaConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
+	saramaConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
 	saramaConfig.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{
 		sarama.NewBalanceStrategyRoundRobin(),
 	}
@@ -108,16 +103,33 @@ func (pb *ProductsBlocked) Run(ctx context.Context) {
 	}
 	defer p.Stop()
 
-	// Сигнализируем о готовности ПОСЛЕ создания процессора (топик создан)
-	if pb.ready != nil {
-		close(pb.ready)
-		pb.logger.Info("ProductsBlocked processor is ready (topic created)")
+	// Запускаем процессор в горутине
+	go func() {
+		if err := p.Run(ctx); err != nil {
+			pb.logger.Error("Processor error: %v", err)
+		}
+	}()
+
+	// Ждём, пока процессор подключится и получит партиции
+	pb.logger.Info("Waiting for processor to become ready...")
+	if err := p.WaitForReady(); err != nil {
+		pb.logger.Error("Processor failed to become ready: %v", err)
+		if pb.ready != nil {
+			close(pb.ready)
+		}
+		return
 	}
 
-	pb.logger.Info("Starting processor...")
-	if err = p.Run(ctx); err != nil {
-		pb.logger.Info("Processor error: %v", err)
+	pb.logger.Info("ProductsBlocked processor is ready (connected, partitions assigned)")
+
+	// Сигнализируем о готовности
+	if pb.ready != nil {
+		close(pb.ready)
 	}
+
+	// Ждём отмены контекста
+	<-ctx.Done()
+	pb.logger.Info("Processor context cancelled, stopping...")
 }
 
 func (pb *ProductsBlocked) productsBlockedUpdate(ctx goka.Context, msg any) {

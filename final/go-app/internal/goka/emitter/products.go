@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/IBM/sarama"
-	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/cert"
 	"github.com/RAdevelop/ya_practicum-kafka/final/go-app/internal/config"
 	"github.com/lovoo/goka"
 )
@@ -58,7 +57,7 @@ func (em *shop) EmitSync(key string, msg interface{}) error {
 }
 
 func newEmitter(topic string, config config.Config, codec goka.Codec) (*goka.Emitter, error) {
-	tlsConfig, err := cert.LoadTLSConfig(config.Shop.SslCaLocation, config.Shop.SslCertLocation, config.Shop.SslCertificatePK8)
+	tlsConfig, err := config.LoadShopConfigTLS()
 	if err != nil {
 		return nil, err
 	}

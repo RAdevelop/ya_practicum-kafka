@@ -42,7 +42,7 @@ make rebuild
 - `docker-compose.spark.yml` - Spark
   - spark-master + spark-worker + spark-job
     - выполняет задачу формирования рекомендаций
-    - джоба раз в 2 минуты смотрит hdfs (`hdfs://hdfs-namenode:9000/topics/products_published/*/*`), обрабатывает файлы, формирует рекомендации по категориям товаров, и складывает в топик рекомендаций
+    - джоба раз в 2 минуты смотрит hdfs (`hdfs://hdfs-namenode:9000/topics/products-published/*/*`), обрабатывает файлы, формирует рекомендации по категориям товаров, и складывает в топик рекомендаций
 - `docker-compose-app.yml` - go-app
   - это веб-сервис
   - `/shop/*` методы
@@ -84,10 +84,10 @@ make rebuild
 
 - `products` - для публикации товаров из файла
   - `go-app/data/shop-products.json` - файл с первыми 10-тью товарами
-- `products_blocked` - список товаров, которые заблокированы, и не должны в итоге участвовать в обработке (аналитика и тп)
-- `products_published` - список товаров, которые прошли фильтрацию заблокированных товаров, и должны в итоге участвовать в обработке (аналитика и тп)
+- `products-blocked` - список товаров, которые заблокированы, и не должны в итоге участвовать в обработке (аналитика и тп)
+- `products-published` - список товаров, которые прошли фильтрацию заблокированных товаров, и должны в итоге участвовать в обработке (аналитика и тп)
 - `recommendations` - рекомендации по товарам (результат аналитики)
-- TODO топик поискового запроса пользователей
+- `client-search` топик поискового запроса пользователей
 
 ## Скрипты для развертывания
 
@@ -176,7 +176,7 @@ replication.policy.class = org.apache.kafka.connect.mirror.IdentityReplicationPo
 
 Данные в файле можно увидеть так:
 ```bash
- docker exec -it kafka-connect cat /var/lib/kafka-connect-data/products_published.jsonl
+ docker exec -it kafka-connect cat /var/lib/kafka-connect-data/products-published.jsonl
 ```
 пример:
 ```json lines
@@ -218,21 +218,21 @@ docker exec hdfs-namenode hdfs dfs -ls -R /topics
 Результат вида:
 ```text
 rwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/+tmp
-drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/+tmp/products_published
-drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/+tmp/products_published/partition=0
-drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:11 /topics/+tmp/products_published/partition=1
-drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/+tmp/products_published/partition=2
-drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/products_published
-drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/products_published/partition=0
--rw-r--r--   1 appuser supergroup       2304 2026-09-08 10:09 /topics/products_published/partition=0/products_published+0+0000000000+0000000002.json
--rw-r--r--   1 appuser supergroup       2186 2026-09-08 10:09 /topics/products_published/partition=0/products_published+0+0000000003+0000000005.json
--rw-r--r--   1 appuser supergroup       2170 2026-09-08 10:09 /topics/products_published/partition=0/products_published+0+0000000006+0000000008.json
-drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:11 /topics/products_published/partition=1
--rw-r--r--   1 appuser supergroup       2289 2026-09-08 10:09 /topics/products_published/partition=1/products_published+1+0000000000+0000000002.json
--rw-r--r--   1 appuser supergroup        735 2026-09-08 10:11 /topics/products_published/partition=1/products_published+1+0000000003+0000000003.json
-drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/products_published/partition=2
--rw-r--r--   1 appuser supergroup       2212 2026-09-08 10:09 /topics/products_published/partition=2/products_published+2+0000000000+0000000002.json
--rw-r--r--   1 appuser supergroup       2212 2026-09-08 10:09 /topics/products_published/partition=2/products_published+2+0000000003+0000000005.json
+drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/+tmp/products-published
+drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/+tmp/products-published/partition=0
+drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:11 /topics/+tmp/products-published/partition=1
+drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/+tmp/products-published/partition=2
+drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/products-published
+drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/products-published/partition=0
+-rw-r--r--   1 appuser supergroup       2304 2026-09-08 10:09 /topics/products-published/partition=0/products-published+0+0000000000+0000000002.json
+-rw-r--r--   1 appuser supergroup       2186 2026-09-08 10:09 /topics/products-published/partition=0/products-published+0+0000000003+0000000005.json
+-rw-r--r--   1 appuser supergroup       2170 2026-09-08 10:09 /topics/products-published/partition=0/products-published+0+0000000006+0000000008.json
+drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:11 /topics/products-published/partition=1
+-rw-r--r--   1 appuser supergroup       2289 2026-09-08 10:09 /topics/products-published/partition=1/products-published+1+0000000000+0000000002.json
+-rw-r--r--   1 appuser supergroup        735 2026-09-08 10:11 /topics/products-published/partition=1/products-published+1+0000000003+0000000003.json
+drwxr-xr-x   - appuser supergroup          0 2026-09-08 10:09 /topics/products-published/partition=2
+-rw-r--r--   1 appuser supergroup       2212 2026-09-08 10:09 /topics/products-published/partition=2/products-published+2+0000000000+0000000002.json
+-rw-r--r--   1 appuser supergroup       2212 2026-09-08 10:09 /topics/products-published/partition=2/products-published+2+0000000003+0000000005.json
 ```
 
 ### Результат формирования рекомендаций

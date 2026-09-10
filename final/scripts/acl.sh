@@ -75,6 +75,53 @@ docker exec -it kafka-b-1 kafka-acls \
 --topic "group-" \
 --resource-pattern-type PREFIXED
 
+################################################################## client-api
+
+echo "${YELLOW}Дадим ${USER_CLIENT_API} права на consumer groups${NC}"
+docker exec -it kafka-b-1 kafka-acls \
+  --command-config ${COMMAND_CONFIG} \
+  --bootstrap-server ${BOOTSTRAP_SERVER} \
+  --add \
+  --allow-principal "User:CN=${USER_CLIENT_API},L=Moscow,OU=Practice,O=Yandex,C=RU" \
+  --operation Describe \
+  --operation Read \
+  --group "*"
+
+echo "${YELLOW}Дадим ${USER_CLIENT_API} права на чтение топика ${TOPIC_CLIENT_SEARCH}${NC}"
+docker exec -it kafka-b-1 kafka-acls \
+  --command-config ${COMMAND_CONFIG} \
+  --bootstrap-server ${BOOTSTRAP_SERVER} \
+  --add \
+  --allow-principal "User:CN=${USER_CLIENT_API},L=Moscow,OU=Practice,O=Yandex,C=RU" \
+  --operation Read \
+  --operation Write \
+  --operation Describe \
+  --topic ${TOPIC_CLIENT_SEARCH}
+
+echo "${YELLOW}Дадим ${USER_CLIENT_API} права на чтение топика recommendations${NC}"
+docker exec -it kafka-b-1 kafka-acls \
+  --command-config ${COMMAND_CONFIG} \
+  --bootstrap-server ${BOOTSTRAP_SERVER} \
+  --add \
+  --allow-principal "User:CN=${USER_CLIENT_API},L=Moscow,OU=Practice,O=Yandex,C=RU" \
+  --operation Read \
+  --operation Describe \
+  --operation DescribeConfigs \
+  --topic ${TOPIC_RECOMMENDATIONS}
+
+echo "${YELLOW}Дадим ${USER_CLIENT_API} права на чтение table-топиков group-*${NC}"
+docker exec -it kafka-b-1 kafka-acls \
+  --command-config ${COMMAND_CONFIG} \
+  --bootstrap-server ${BOOTSTRAP_SERVER} \
+  --add \
+  --allow-principal "User:CN=${USER_CLIENT_API},L=Moscow,OU=Practice,O=Yandex,C=RU" \
+  --operation Read \
+  --operation Describe \
+  --operation DescribeConfigs \
+  --topic "group-" \
+  --resource-pattern-type PREFIXED
+
+
 ################################################################## kafka-connect
 echo "\n"
 echo "${YELLOW}Дадим ${USER_KAFKA_CONNECT} права на первом кластере на чтение ${TOPIC_PRODUCTS_PUBLISHED}:${NC}"
@@ -116,7 +163,7 @@ docker exec -it kafka-b-1 kafka-acls \
 --operation DESCRIBE \
 --group connect-file-sink-products
 
-# Права на чтение products_published
+# Права на чтение products-published
 docker exec -it kafka2-b-1 kafka-acls \
   --command-config ${COMMAND_CONFIG} \
   --bootstrap-server ${BOOTSTRAP_SERVER2} \

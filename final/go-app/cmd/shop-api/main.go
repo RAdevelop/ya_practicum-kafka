@@ -89,7 +89,7 @@ func main() {
 	// Ждём, пока ProductsBlocked создаст топик
 	select {
 	case <-blockedProcessorReady:
-		appLogger.Info("ProductsBlocked processor is ready (topic created)")
+		appLogger.Info("ProductsBlocked processor is ready (connected, partitions assigned)")
 	case <-time.After(30 * time.Second):
 		appLogger.Error("Timeout waiting for ProductsBlocked processor")
 		return
@@ -98,9 +98,9 @@ func main() {
 		return
 	}
 
-	// 4. Создание View (теперь топик существует)
+	// 4. View для заблокированных товаров
 	blockedProductsViewLogger := logger.New("[BlockedProductsView]")
-	blockedProductsView, err := view.NewView(ctx, jsCodec.NewEncodingJson[*store.ProductsBlockedStore](), cfg, blockedProductsViewLogger)
+	blockedProductsView, err := view.NewViewBlockedProducts(ctx, jsCodec.NewEncodingJson[*store.ProductsBlockedStore](), cfg, blockedProductsViewLogger)
 	if err != nil {
 		blockedProductsViewLogger.Error("Failed to create view: %v", err)
 		return
@@ -118,8 +118,29 @@ func main() {
 		return
 	}
 
+	// View для рекомендаций
+	recommendationsProductsViewLogger := logger.New("[RecommendationsProductsView]")
+	recommendationsProductsView, err := view.NewViewRecommendationsProducts(ctx, jsCodec.NewEncodingJson[*store.Recommendations](), cfg, recommendationsProductsViewLogger)
+	if err != nil {
+		recommendationsProductsViewLogger.Error("Failed to create view: %v", err)
+		return
+	}
+
+	// Ждём, пока View загрузит данные
+	select {
+	case <-recommendationsProductsView.WaitRunning():
+		appLogger.Info("RecommendationsProductsView is ready")
+	case <-time.After(30 * time.Second):
+		appLogger.Error("Timeout waiting for RecommendationsProductsView")
+		return
+	case <-ctx.Done():
+		appLogger.Error("Context cancelled while waiting for RecommendationsProductsView")
+		return
+	}
+
 	views := &api.Views{
-		BlockedProductsView: blockedProductsView,
+		BlockedProductsView:         blockedProductsView,
+		RecommendationsProductsView: recommendationsProductsView,
 	}
 
 	// 5. Запуск цензора (зависит от View)
